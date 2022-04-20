@@ -138,18 +138,53 @@ int get_node_by_path(const char *path, uint16_t ino, struct inode *inode) {
  * Make file system
  */
 int rufs_mkfs() {
-
 	// Call dev_init() to initialize (Create) Diskfile
+	dev_init(diskfile_path);
 
 	// write superblock information
+	superblock.magic_num = MAGIC_NUM;
+	superblock.max_inum = MAX_INUM;
+	superblock.max_dnum = MAX_DNUM;
+	superblock.i_bitmap_blk = 1;
+	superblock.d_bitmap_blk = 2;
+	superblock.i_start_blk = 3;
+	superblock.d_start_blk = 3 + (int) MAX_INUM * sizeof(struct inode) / ((int) BLOCK_SIZE);
+
+	char superblock_buf[BLOCK_SIZE];
+	memcpy(superblock_buf, &superblock, sizeof(superblock));
+
+	bio_write(0, superblock_buf);
 
 	// initialize inode bitmap
+	inode_bitmap = malloc(MAX_INUM / 8);
 
 	// initialize data block bitmap
+	data_block_bitmap = malloc(MAX_DNUM / 8);
 
 	// update bitmap information for root directory
+	set_bitmap(inode_bitmap, 0);
+	set_bitmap(data_block_bitmap, 0);
+
+	char inode_bitmap_block[BLOCK_SIZE];
+	memcpy(inode_bitmap_block, inode_bitmap, MAX_INUM / 8);
+	bio_write(1, inode_bitmap);
+
+	char data_bitmap_block[BLOCK_SIZE];
+	memcpy(data_bitmap_block, data_block_bitmap, MAX_DNUM / 8);
+	bio_write(2, data_block_bitmap);
 
 	// update inode for root directory
+	struct inode root_directory;
+
+	// TODO: superblock needs a global counter variable
+	root_directory.ino = inod_ctr;
+	root_directory.valid = 1;
+	root_directory.size = BLOCK_SIZE;
+	root_directory.direct_ptr[0] = superblock.d_bitmap_blk * BLOCK_SIZE;
+
+	char root_directory_inode_block[BLOCK_SIZE];
+	memcpy(root_directory_inode_block, &root_directory, sizeof(root_directory));
+	bio_write(3, root_directory_inode_block);
 
 	return 0;
 }
@@ -159,11 +194,20 @@ int rufs_mkfs() {
  * FUSE file operations
  */
 static void *rufs_init(struct fuse_conn_info *conn) {
+	if (dev_open(diskfile_path) == -1) {
+		// Step 1a: If disk file is not found, call mkfs
+		rufs_mkfs();
+	} else {
+		// Step 1b: If disk file is found, just initialize in-memory data structures
+		// and read superblock from disk
 
-	// Step 1a: If disk file is not found, call mkfs
+		char block[BLOCK_SIZE];
+		bio_read(0, block);
+		
+		memcpy(&superblock, block, sizeof(superblock));
+	}
 
-  // Step 1b: If disk file is found, just initialize in-memory data structures
-  // and read superblock from disk
+  
 
 	return NULL;
 }
@@ -171,8 +215,11 @@ static void *rufs_init(struct fuse_conn_info *conn) {
 static void rufs_destroy(void *userdata) {
 
 	// Step 1: De-allocate in-memory data structures
+	free(inode_bitmap);
+	free(data_block_bitmap);
 
 	// Step 2: Close diskfile
+	dev_close(diskfile_path);
 
 }
 
