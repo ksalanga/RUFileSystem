@@ -64,4 +64,11 @@ uint8_t get_bitmap(bitmap_t b, int i) {
     return b[i / 8] & (1 << (i & 7)) ? 1 : 0;
 }
 
+struct superblock superblock;
+
+bitmap_t inode_bitmap;
+bitmap_t data_block_bitmap;
+
+uint16_t inod_ctr = 0;
+
 #endif
