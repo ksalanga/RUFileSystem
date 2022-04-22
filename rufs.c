@@ -238,6 +238,9 @@ static void *rufs_init(struct fuse_conn_info *conn) {
 		bio_read(0, block);
 		
 		memcpy(&superblock, block, sizeof(superblock));
+
+		inode_bitmap = malloc(superblock.max_inum / 8);
+		data_block_bitmap = malloc(superblock.max_dnum / 8);
 	}
 
   
