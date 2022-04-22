@@ -46,6 +46,10 @@ struct dirent {
 	uint16_t len;					/* length of name */
 };
 
+enum filetype {
+	FILE,
+	DIRECTORY
+};
 
 /*
  * bitmap operations

@@ -178,6 +178,7 @@ int rufs_mkfs() {
 
 	root_directory.ino = 0;
 	root_directory.valid = 1;
+	root_directory.type = DIRECTORY;
 	root_directory.size = BLOCK_SIZE;
 	root_directory.direct_ptr[0] = superblock.d_bitmap_blk * BLOCK_SIZE;
 
