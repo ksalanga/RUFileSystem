@@ -179,8 +179,8 @@ int rufs_mkfs() {
 	root_directory.ino = 0;
 	root_directory.valid = 1;
 	root_directory.type = DIRECTORY;
-	root_directory.size = BLOCK_SIZE;
-	root_directory.direct_ptr[0] = superblock.d_bitmap_blk * BLOCK_SIZE;
+	root_directory.size = 0;
+	root_directory.direct_ptr[0] = superblock.d_start_blk * BLOCK_SIZE;
 
 	char root_directory_inode_block[BLOCK_SIZE];
 	memcpy(root_directory_inode_block, &root_directory, sizeof(root_directory));
