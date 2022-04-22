@@ -44,10 +44,15 @@ int get_avail_ino() {
 	int index = superblock.max_inum + 1;
 	for(int i = 0; i<superblock.max_inum;i++){
 		if(inode_bitmap[i] == 0){
-			
+			index = i;
 		}
 	}
-	return 0;
+
+	if(index == superblock.max_inum + 1){
+		return -1;
+	}
+
+	return index;
 }
 
 /* 
@@ -68,20 +73,13 @@ int get_avail_blkno() {
  * inode operations
  */
 int readi(uint16_t ino, struct inode *inode) {
-	int iblock_size = ((int)BLOCK_SIZE) / sizeof(struct inode);
 
-  	// Step 1: Get the inode's on-disk block number
-	int inode_block_index = ino / iblock_size;
-	
-	char inode_block[BLOCK_SIZE];
-	bio_read(superblock.i_start_blk + inode_block_index, &inode_block);
+  // Step 1: Get the inode's on-disk block number
 
-	// Step 2: Get offset of the inode in the inode on-disk block
-	int offset = ino % iblock_size;
+  // Step 2: Get offset of the inode in the inode on-disk block
 
-	// Step 3: Read the block from disk and then copy into inode structure
-	memcpy(inode, &inode_block[offset * sizeof(struct inode)], sizeof(struct inode));
-	
+  // Step 3: Read the block from disk and then copy into inode structure
+
 	return 0;
 }
 
@@ -174,15 +172,9 @@ int rufs_mkfs() {
 
 	// initialize inode bitmap
 	inode_bitmap = malloc(MAX_INUM / 8);
-	for (int i = 0; i < MAX_INUM / 8; i++) {
-		unset_bitmap(inode_bitmap, i);
-	}
 
 	// initialize data block bitmap
 	data_block_bitmap = malloc(MAX_DNUM / 8);
-	for (int i = 0; i < MAX_DNUM / 8; i++) {
-		unset_bitmap(data_block_bitmap, i);
-	}
 
 	// update bitmap information for root directory
 	set_bitmap(inode_bitmap, 0);
@@ -202,8 +194,8 @@ int rufs_mkfs() {
 	root_directory.ino = 0;
 	root_directory.valid = 1;
 	root_directory.type = DIRECTORY;
-	root_directory.size = 0;
-	root_directory.direct_ptr[0] = superblock.d_start_blk * BLOCK_SIZE;
+	root_directory.size = BLOCK_SIZE;
+	root_directory.direct_ptr[0] = superblock.d_bitmap_blk * BLOCK_SIZE;
 
 	char root_directory_inode_block[BLOCK_SIZE];
 	memcpy(root_directory_inode_block, &root_directory, sizeof(root_directory));
