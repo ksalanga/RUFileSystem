@@ -37,6 +37,9 @@ int get_avail_ino() {
 
     // Step 3: Update inode bitmap and write to disk 
 
+	if(inode_bitmap == NULL){
+		malloc((MAX_INUM / 8));
+	}
     char block[BLOCK_SIZE];
     bio_read(superblock.i_bitmap_blk, &block);
 	memcpy(inode_bitmap, &block, (MAX_INUM / 8));
