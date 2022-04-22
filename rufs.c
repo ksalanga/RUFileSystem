@@ -52,7 +52,7 @@ int get_avail_ino() {
 	if(index == superblock.max_inum + 1){
 		return -1;
 	}
-
+	set_bitmap(inode_bitmap, index);
 	return index;
 }
 /* 
