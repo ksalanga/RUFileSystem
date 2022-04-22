@@ -47,6 +47,12 @@ int get_avail_ino() {
             index = i;
         }
     }
+	if(index == superblock.max_inum + 1){
+		return -1;
+	}
+
+	return index;
+}
 /* 
  * Get available data block number from bitmap
  */
