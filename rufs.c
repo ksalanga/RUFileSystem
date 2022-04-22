@@ -176,8 +176,7 @@ int rufs_mkfs() {
 	// update inode for root directory
 	struct inode root_directory;
 
-	// TODO: superblock needs a global counter variable
-	root_directory.ino = inod_ctr;
+	root_directory.ino = 0;
 	root_directory.valid = 1;
 	root_directory.size = BLOCK_SIZE;
 	root_directory.direct_ptr[0] = superblock.d_bitmap_blk * BLOCK_SIZE;
