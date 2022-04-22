@@ -69,13 +69,31 @@ int get_avail_ino() {
  */
 int get_avail_blkno() {
 
-	// Step 1: Read data block bitmap from disk
-	
-	// Step 2: Traverse data block bitmap to find an available slot
+    // Step 1: Read data block bitmap from disk
 
-	// Step 3: Update data block bitmap and write to disk 
+    // Step 2: Traverse data block bitmap to find an available slot
 
-	return 0;
+    // Step 3: Update data block bitmap and write to disk 
+
+    char block[BLOCK_SIZE];
+    bio_read(superblock.d_bitmap_blk, &block);
+    memcpy(data_block_bitmap, &block, (MAX_INUM / 8));
+    //call bio read to convert
+    // 0 is free 
+    int index = superblock.max_dnum + 1;
+    for(int i = 0; i<superblock.max_dnum;i++){
+        if(get_bitmap(data_block_bitmap, i) == 0){
+            index = i;
+            break;
+        }
+    }
+    if(index == superblock.max_inum + 1){
+        return -1;
+    }
+    set_bitmap(data_block_bitmap, index);
+    memcpy(&block, data_block_bitmap, (MAX_INUM / 8));
+    bio_write(superblock.d_bitmap_blk, &block);
+    return index;
 }
 
 /* 
