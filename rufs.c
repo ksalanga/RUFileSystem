@@ -38,7 +38,8 @@ int get_avail_ino() {
     // Step 3: Update inode bitmap and write to disk 
 
     char block[BLOCK_SIZE];
-    bitmap_t inode_bitmap = bio_read(superblock.i_bitmap_blk, block);
+    bio_read(superblock.i_bitmap_blk, &block);
+	memcpy(bitmap_t inode_bitmap, &block);
     //call bio read to convert
     // 0 is free 
     int index = superblock.max_inum + 1;
