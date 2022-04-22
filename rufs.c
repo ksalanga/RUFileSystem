@@ -44,8 +44,9 @@ int get_avail_ino() {
     // 0 is free 
     int index = superblock.max_inum + 1;
     for(int i = 0; i<superblock.max_inum;i++){
-        if(inode_bitmap[i] == 0){
+        if(get_bitmap(inode_bitmap, i) == 0){
             index = i;
+			break;
         }
     }
 	if(index == superblock.max_inum + 1){
