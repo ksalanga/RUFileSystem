@@ -53,7 +53,8 @@ int get_avail_ino() {
 		return -1;
 	}
 	set_bitmap(inode_bitmap, index);
-	memcpy(&block, inode_bitmap, (MAX_INUM / 8))
+	memcpy(&block, inode_bitmap, (MAX_INUM / 8));
+	bio_write(superblock.i_bitmap_blk, &block);
 	return index;
 }
 /* 
