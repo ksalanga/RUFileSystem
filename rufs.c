@@ -157,9 +157,15 @@ int rufs_mkfs() {
 
 	// initialize inode bitmap
 	inode_bitmap = malloc(MAX_INUM / 8);
+	for (int i = 0; i < MAX_INUM / 8; i++) {
+		unset_bitmap(inode_bitmap, i);
+	}
 
 	// initialize data block bitmap
 	data_block_bitmap = malloc(MAX_DNUM / 8);
+	for (int i = 0; i < MAX_DNUM / 8; i++) {
+		unset_bitmap(data_block_bitmap, i);
+	}
 
 	// update bitmap information for root directory
 	set_bitmap(inode_bitmap, 0);
