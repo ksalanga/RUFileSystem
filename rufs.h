@@ -17,6 +17,7 @@
 #define MAX_INUM 1024
 #define MAX_DNUM 16384
 
+#define IBLOCK_SIZE BLOCK_SIZE / sizeof(struct inode)
 
 struct superblock {
 	uint32_t	magic_num;			/* magic number */
