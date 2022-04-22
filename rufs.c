@@ -53,6 +53,7 @@ int get_avail_ino() {
 		return -1;
 	}
 	set_bitmap(inode_bitmap, index);
+	memcpy(&block, inode_bitmap, (MAX_INUM / 8))
 	return index;
 }
 /* 
