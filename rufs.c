@@ -78,16 +78,14 @@ int get_avail_blkno() {
  * inode operations
  */
 int readi(uint16_t ino, struct inode *inode) {
-	int iblock_size = ((int)BLOCK_SIZE) / sizeof(struct inode);
-
   	// Step 1: Get the inode's on-disk block number
-	int inode_block_index = ino / iblock_size;
+	int inode_block_index = ino / (int)IBLOCK_SIZE;
 	
 	char inode_block[BLOCK_SIZE];
 	bio_read(superblock.i_start_blk + inode_block_index, &inode_block);
 
 	// Step 2: Get offset of the inode in the inode on-disk block
-	int offset = ino % iblock_size;
+	int offset = ino % (int)IBLOCK_SIZE;
 
 	// Step 3: Read the block from disk and then copy into inode structure
 	memcpy(inode, &inode_block[offset * sizeof(struct inode)], sizeof(struct inode));
@@ -98,10 +96,17 @@ int readi(uint16_t ino, struct inode *inode) {
 int writei(uint16_t ino, struct inode *inode) {
 
 	// Step 1: Get the block number where this inode resides on disk
+	int inode_block_index = ino / (int)IBLOCK_SIZE;
 	
+	char inode_block[BLOCK_SIZE];
+	bio_read(superblock.i_start_blk + inode_block_index, &inode_block);
+
 	// Step 2: Get the offset in the block where this inode resides on disk
+	int offset = ino % (int)IBLOCK_SIZE;
 
 	// Step 3: Write inode to disk 
+	memcpy(&inode_block[offset * sizeof(struct inode)], inode, sizeof(struct inode));
+	bio_write(superblock.i_start_blk + inode_block_index, &inode_block);
 
 	return 0;
 }
