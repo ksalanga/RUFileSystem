@@ -59,11 +59,19 @@ int get_avail_blkno() {
  */
 int readi(uint16_t ino, struct inode *inode) {
 
+  int iblock_size = ((int)BLOCK_SIZE) / sizeof(struct inode);
+
   // Step 1: Get the inode's on-disk block number
+  int inode_block_index = ino / iblock_size;
+  
+  char inode_block[BLOCK_SIZE];
+  bio_read(superblock.i_start_blk + inode_block_index, &inode_block);
 
   // Step 2: Get offset of the inode in the inode on-disk block
+  int offset = ino % iblock_size;
 
   // Step 3: Read the block from disk and then copy into inode structure
+  memcpy(inode, &inode_block[offset * sizeof(struct inode)], sizeof(struct inode));
 
 	return 0;
 }
