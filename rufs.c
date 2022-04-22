@@ -25,6 +25,10 @@
 char diskfile_path[PATH_MAX];
 
 // Declare your in-memory data structures here
+struct superblock superblock;
+
+bitmap_t inode_bitmap;
+bitmap_t data_block_bitmap;
 
 /* 
  * Get available inode number from bitmap
