@@ -31,25 +31,22 @@ char diskfile_path[PATH_MAX];
  */
 int get_avail_ino() {
 
-	// Step 1: Read inode bitmap from disk
-	
-	// Step 2: Traverse inode bitmap to find an available slot
+    // Step 1: Read inode bitmap from disk
 
-	// Step 3: Update inode bitmap and write to disk 
+    // Step 2: Traverse inode bitmap to find an available slot
 
-	char block[BLOCK_SIZE];
-	bitmap_t inode_bitmap = bio_read(superblock.i_bitmap_blk, block);
-	//call bio read to convert
-	// 0 is free 
-	int index = superblock.max_inum + 1;
-	for(int i = 0; i<superblock.max_inum;i++){
-		if(inode_bitmap[i] == 0){
-			
-		}
-	}
-	return 0;
-}
+    // Step 3: Update inode bitmap and write to disk 
 
+    char block[BLOCK_SIZE];
+    bitmap_t inode_bitmap = bio_read(superblock.i_bitmap_blk, block);
+    //call bio read to convert
+    // 0 is free 
+    int index = superblock.max_inum + 1;
+    for(int i = 0; i<superblock.max_inum;i++){
+        if(inode_bitmap[i] == 0){
+            index = i;
+        }
+    }
 /* 
  * Get available data block number from bitmap
  */
