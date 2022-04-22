@@ -39,7 +39,7 @@ int get_avail_ino() {
 
     char block[BLOCK_SIZE];
     bio_read(superblock.i_bitmap_blk, &block);
-	memcpy(bitmap_t inode_bitmap, &block);
+	memcpy(inode_bitmap, &block);
     //call bio read to convert
     // 0 is free 
     int index = superblock.max_inum + 1;
