@@ -175,10 +175,25 @@ int dir_add(struct inode dir_inode, uint16_t f_ino, const char *fname, size_t na
 int dir_remove(struct inode dir_inode, const char *fname, size_t name_len) {
 
 	// Step 1: Read dir_inode's data block and checks each directory entry of dir_inode
-	
+	int data_block_index = dir_inode.direct_ptr[0] / BLOCK_SIZE;
+
+	char dirent_block[BLOCK_SIZE];
+	bio_read(data_block_index, &dirent_block);
+
+	struct dirent *entry_ptr = &dirent_block;
+	int max_num_entries = BLOCK_SIZE / sizeof(struct dirent);
+
 	// Step 2: Check if fname exist
 
 	// Step 3: If exist, then remove it from dir_inode's data block and write to disk
+	for (int i = 0; i < max_num_entries; i++) {
+		if (entry_ptr->valid && strcmp(entry_ptr->name, fname) == 0) {
+			entry_ptr->valid = 0;
+			bio_write(data_block_index, dirent_block);
+			return 1;
+		}
+		entry_ptr++;
+	}
 
 	return 0;
 }
