@@ -476,16 +476,36 @@ static int rufs_mkdir(const char *path, mode_t mode) {
 static int rufs_rmdir(const char *path) {
 
 	// Step 1: Use dirname() and basename() to separate parent directory path and target directory name
+	char *lastSlash = strrchr(path, '/');
+    const char *base = lastSlash ? lastSlash + 1 : path;
 
-	// Step 2: Call get_node_by_path() to get inode of target directory
+    char dir[lastSlash + 1 - path];
+	memcpy(&dir, path, lastSlash + 1 - path);
 
-	// Step 3: Clear data block bitmap of target directory
+	// Step 2: Call get_node_by_path() to get inode of parent directory
+	struct inode target_dir_inode;
+	if (get_node_by_path(path, 0, &target_dir_inode)) {
+		// Step 3: Clear data block bitmap of target directory
+		int data_bitmap_index = (target_dir_inode.direct_ptr[0] - superblock.d_start_blk * BLOCK_SIZE) / BLOCK_SIZE;
+		unset_bitmap(data_bitmap, data_bitmap_index);
+		char data_bitmap_block[BLOCK_SIZE];
+		memcpy(&data_bitmap_block, data_bitmap, superblock.max_dnum / 8);
+		bio_write(superblock.d_bitmap_blk, &data_bitmap_block);
 
-	// Step 4: Clear inode bitmap and its data block
+		// Step 4: Clear inode bitmap and its data block
+		unset_bitmap(inode_bitmap, target_dir_inode.ino);
+		char inode_bitmap_block[BLOCK_SIZE];
+		memcpy(&inode_bitmap_block, inode_bitmap, superblock.max_inum / 8);
+		bio_write(superblock.i_bitmap_blk, &inode_bitmap_block);
 
-	// Step 5: Call get_node_by_path() to get inode of parent directory
+		// Step 5: Call get_node_by_path() to get inode of parent directory
+		struct inode dir_inode;
+		get_node_by_path((const char *)&dir, 0, &dir_inode);
 
-	// Step 6: Call dir_remove() to remove directory entry of target directory in its parent directory
+		// Step 6: Call dir_remove() to remove directory entry of target directory in its parent directory
+		dir_remove(dir_inode, base, strlen(base));
+		return 1;
+	}
 
 	return 0;
 }
