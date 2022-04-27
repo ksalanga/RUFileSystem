@@ -237,6 +237,11 @@ int get_node_by_path(const char *path, uint16_t ino, struct inode *inode) {
 	
 	// Step 1: Resolve the path name, walk through path, and finally, find its inode.
 	// Note: You could either implement it in a iterative way or recursive way
+	if (strcmp(path, "/") == 0) {
+		readi(0, inode);
+		return 1;
+	}
+
 	char *file = strtok(path, "/");
 
 	struct dirent dirent;
