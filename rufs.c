@@ -223,12 +223,20 @@ int get_node_by_path(const char *path, uint16_t ino, struct inode *inode) {
 	// Note: You could either implement it in a iterative way or recursive way
 	char *file = strtok(path, "/");
 
-	while( file != NULL ) {
-		struct dirent dirent;
+	struct dirent dirent;
+	dirent.valid = 0;
+	while (file != NULL) {
 		if (dir_find(ino, file, strlen(file), &dirent)) {
-			// Do stuff
+			ino = dirent.ino;
+		} else {
+			return 0;
 		}
 		file = strtok(NULL, "/");
+	}
+
+	if (dirent.valid) {
+		readi(dirent.ino, inode);
+		return 1;
 	}
 
 	return 0;
