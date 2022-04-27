@@ -410,15 +410,14 @@ static int rufs_readdir(const char *path, void *buffer, fuse_fill_dir_t filler, 
 	struct dirent *entry_ptr = &dirent_block;
 
 	int numEntries = BLOCK_SIZE / sizeof(struct dirent);
-	int counter = 1;
+	int counter = 0;
 	for(int i = 0; i < numEntries; i++){
 		if(entry_ptr->valid){
+			memcpy(&(filler + (counter*offset)), entry_ptr, sizeof(struct dirent));
 			counter++;
-			memcpy(&filler, entry_ptr, sizeof(struct dirent));
+
 		}
 		entry_ptr++;
-		&filler = &filler + (counter*offset); 
-
 	}
 
 
