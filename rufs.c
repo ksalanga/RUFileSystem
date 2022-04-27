@@ -396,6 +396,10 @@ static int rufs_readdir(const char *path, void *buffer, fuse_fill_dir_t filler, 
 static int rufs_mkdir(const char *path, mode_t mode) {
 
 	// Step 1: Use dirname() and basename() to separate parent directory path and target directory name
+	char *lastSlash = strrchr(path, '/');
+    char *base = lastSlash ? lastSlash + 1 : szSomeFileName;
+
+    char *dir = malloc(lastSlash + 1 - &szSomeFileName[0]);
 
 	// Step 2: Call get_node_by_path() to get inode of parent directory
 
