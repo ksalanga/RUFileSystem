@@ -367,9 +367,18 @@ static int rufs_getattr(const char *path, struct stat *stbuf) {
 
 	// Step 2: fill attribute of file into stbuf from inode
 
-		stbuf->st_mode   = S_IFDIR | 0755;
-		stbuf->st_nlink  = 2;
+	struct inode* inode;
+	int check = get_node_by_path(path,0,inode);
+	if(check == 0){
+		return -1; // not found
+	}
+		stbuf->st_mode   = inode->type;
+		stbuf->st_nlink  = inode->link;
+		stbuf->st_size = inode->size;
 		time(&stbuf->st_mtime);
+		stbuf->st_uid = getuid();
+		stbuf->st_gid = getgid();
+		
 
 	return 0;
 }
