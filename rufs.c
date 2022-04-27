@@ -140,11 +140,27 @@ int writei(uint16_t ino, struct inode *inode) {
 int dir_find(uint16_t ino, const char *fname, size_t name_len, struct dirent *dirent) {
 
   // Step 1: Call readi() to get the inode using ino (inode number of current directory)
+	struct inode* inode;
+  	readi(ino, inode);
 
   // Step 2: Get data block of current directory from inode
+	int data_block_index = inode.direct_ptr[0] / BLOCK_SIZE;
+	char dirent_block[BLOCK_SIZE];
+	bio_read(data_block_index, &dirent_block);
+	struct dirent *entry_ptr = &dirent_block;
+	int max_num_entries = BLOCK_SIZE / sizeof(struct dirent);
+
 
   // Step 3: Read directory's data block and check each directory entry.
   //If the name matches, then copy directory entry to dirent structure
+
+  	for (int i = 0; i < max_num_entries; i++) {
+		if (entry_ptr->valid && strcmp(entry_ptr->name, fname) == 0) {
+			memcpy(entry_ptr, dirent);
+			return 1;
+		}
+		entry_ptr++;
+	}
 
 	return 0;
 }
