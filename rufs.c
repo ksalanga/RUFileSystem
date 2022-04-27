@@ -28,7 +28,7 @@ char diskfile_path[PATH_MAX];
 struct superblock superblock;
 
 bitmap_t inode_bitmap;
-bitmap_t data_block_bitmap;
+bitmap_t data_bitmap;
 
 /* 
  * Get available inode number from bitmap
@@ -77,12 +77,12 @@ int get_avail_blkno() {
 
     char block[BLOCK_SIZE];
     bio_read(superblock.d_bitmap_blk, &block);
-    memcpy(data_block_bitmap, &block, (MAX_INUM / 8));
+    memcpy(data_bitmap, &block, (MAX_INUM / 8));
     //call bio read to convert
     // 0 is free 
     int index = superblock.max_dnum + 1;
     for(int i = 0; i<superblock.max_dnum;i++){
-        if(get_bitmap(data_block_bitmap, i) == 0){
+        if(get_bitmap(data_bitmap, i) == 0){
             index = i;
             break;
         }
@@ -90,8 +90,8 @@ int get_avail_blkno() {
     if(index == superblock.max_inum + 1){
         return -1;
     }
-    set_bitmap(data_block_bitmap, index);
-    memcpy(&block, data_block_bitmap, (MAX_INUM / 8));
+    set_bitmap(data_bitmap, index);
+    memcpy(&block, data_bitmap, (MAX_INUM / 8));
     bio_write(superblock.d_bitmap_blk, &block);
     return index;
 }
@@ -140,14 +140,14 @@ int writei(uint16_t ino, struct inode *inode) {
 int dir_find(uint16_t ino, const char *fname, size_t name_len, struct dirent *dirent) {
 
   // Step 1: Call readi() to get the inode using ino (inode number of current directory)
-	struct inode* inode;
-  	readi(ino, inode);
+	struct inode inode;
+  	readi(ino, &inode);
 
   // Step 2: Get data block of current directory from inode
 	int data_block_index = inode.direct_ptr[0] / BLOCK_SIZE;
 	char dirent_block[BLOCK_SIZE];
 	bio_read(data_block_index, &dirent_block);
-	struct dirent *entry_ptr = &dirent_block;
+	struct dirent *entry_ptr = (struct dirent *)&dirent_block;
 	int max_num_entries = BLOCK_SIZE / sizeof(struct dirent);
 
 
@@ -181,7 +181,7 @@ int dir_add(struct inode dir_inode, uint16_t f_ino, const char *fname, size_t na
 	int data_block_index = dir_inode.direct_ptr[0] / BLOCK_SIZE;
 	char dirent_block[BLOCK_SIZE];
 	bio_read(data_block_index, &dirent_block);
-	struct dirent *entry_ptr = &dirent_block;
+	struct dirent *entry_ptr = (struct dirent *)&dirent_block;
 
 	int numEntries = BLOCK_SIZE / sizeof(struct dirent);
 
@@ -192,7 +192,7 @@ int dir_add(struct inode dir_inode, uint16_t f_ino, const char *fname, size_t na
 			entry_ptr->valid = 1;
 			entry_ptr->len = name_len;
 			entry_ptr->ino = f_ino;
-			entry_ptr->name = fname;
+			strcpy(entry_ptr->name, fname);
 			bio_write(data_block_index, dirent_block);
 			return 1;
 		}
@@ -212,7 +212,7 @@ int dir_remove(struct inode dir_inode, const char *fname, size_t name_len) {
 	char dirent_block[BLOCK_SIZE];
 	bio_read(data_block_index, &dirent_block);
 
-	struct dirent *entry_ptr = &dirent_block;
+	struct dirent *entry_ptr = (struct dirent *)&dirent_block;
 	int max_num_entries = BLOCK_SIZE / sizeof(struct dirent);
 
 	// Step 2: Check if fname exist
@@ -242,7 +242,7 @@ int get_node_by_path(const char *path, uint16_t ino, struct inode *inode) {
 		return 1;
 	}
 
-	char *file = strtok(path, "/");
+	char *file = strtok((char *)path, "/");
 
 	struct dirent dirent;
 	dirent.valid = 0;
@@ -291,22 +291,22 @@ int rufs_mkfs() {
 	}
 
 	// initialize data block bitmap
-	data_block_bitmap = malloc(MAX_DNUM / 8);
+	data_bitmap = malloc(MAX_DNUM / 8);
 	for (int i = 0; i < MAX_DNUM / 8; i++) {
-		unset_bitmap(data_block_bitmap, i);
+		unset_bitmap(data_bitmap, i);
 	}
 
 	// update bitmap information for root directory
 	set_bitmap(inode_bitmap, 0);
-	set_bitmap(data_block_bitmap, 0);
+	set_bitmap(data_bitmap, 0);
 
 	char inode_bitmap_block[BLOCK_SIZE];
-	memcpy(inode_bitmap_block, inode_bitmap, MAX_INUM / 8);
+	memcpy(&inode_bitmap_block, inode_bitmap, MAX_INUM / 8);
 	bio_write(1, inode_bitmap);
 
 	char data_bitmap_block[BLOCK_SIZE];
-	memcpy(data_bitmap_block, data_block_bitmap, MAX_DNUM / 8);
-	bio_write(2, data_block_bitmap);
+	memcpy(&data_bitmap_block, data_bitmap, MAX_DNUM / 8);
+	bio_write(2, data_bitmap);
 
 	// update inode for root directory
 	struct inode root_directory;
@@ -342,7 +342,7 @@ static void *rufs_init(struct fuse_conn_info *conn) {
 		memcpy(&superblock, block, sizeof(superblock));
 
 		inode_bitmap = malloc(superblock.max_inum / 8);
-		data_block_bitmap = malloc(superblock.max_dnum / 8);
+		data_bitmap = malloc(superblock.max_dnum / 8);
 	}
 
   
@@ -354,7 +354,7 @@ static void rufs_destroy(void *userdata) {
 
 	// Step 1: De-allocate in-memory data structures
 	free(inode_bitmap);
-	free(data_block_bitmap);
+	free(data_bitmap);
 
 	// Step 2: Close diskfile
 	dev_close(diskfile_path);
@@ -367,14 +367,14 @@ static int rufs_getattr(const char *path, struct stat *stbuf) {
 
 	// Step 2: fill attribute of file into stbuf from inode
 
-	struct inode* inode;
-	int check = get_node_by_path(path,0,inode);
+	struct inode inode;
+	int check = get_node_by_path(path,0, &inode);
 	if(check == 0){
 		return -1; // not found
 	}
 		stbuf->st_mode   = S_IFDIR | 0755; //WHAT TO PUT HERE?
-		stbuf->st_nlink  = inode->link;
-		stbuf->st_size = inode->size;
+		stbuf->st_nlink  = inode.link;
+		stbuf->st_size = inode.size;
 		time(&stbuf->st_mtime);
 		stbuf->st_uid = getuid();
 		stbuf->st_gid = getgid();
@@ -407,8 +407,8 @@ static int rufs_readdir(const char *path, void *buffer, fuse_fill_dir_t filler, 
 
 	// Step 2: Read directory entries from its data blocks, and copy them to filler
 
-	struct inode* inode;
-	int check = get_node_by_path(path,0,inode);
+	struct inode inode;
+	int check = get_node_by_path(path,0, &inode);
 	if(check == 0){
 		return -1; // not found
 	}
@@ -416,13 +416,13 @@ static int rufs_readdir(const char *path, void *buffer, fuse_fill_dir_t filler, 
 	int data_block_index = inode.direct_ptr[0] / BLOCK_SIZE;
 	char dirent_block[BLOCK_SIZE];
 	bio_read(data_block_index, &dirent_block);
-	struct dirent *entry_ptr = &dirent_block;
+	struct dirent *entry_ptr = (struct dirent *)&dirent_block;
 
 	int numEntries = BLOCK_SIZE / sizeof(struct dirent);
 	int counter = 0;
 	for(int i = 0; i < numEntries; i++){
 		if(entry_ptr->valid){
-			memcpy(&(filler + (counter*offset)), entry_ptr, sizeof(struct dirent));
+			memcpy(&filler + (counter*offset), entry_ptr, sizeof(struct dirent));
 			counter++;
 
 		}
