@@ -48,7 +48,7 @@ struct dirent {
 };
 
 enum filetype {
-	FILE,
+	REG_FILE,
 	DIRECTORY
 };
 
