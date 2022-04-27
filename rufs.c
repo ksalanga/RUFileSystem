@@ -156,7 +156,7 @@ int dir_find(uint16_t ino, const char *fname, size_t name_len, struct dirent *di
 
   	for (int i = 0; i < max_num_entries; i++) {
 		if (entry_ptr->valid && strcmp(entry_ptr->name, fname) == 0) {
-			memcpy(entry_ptr, dirent);
+			memcpy(dirent, entry_ptr, sizeof(struct dirent));
 			return 1;
 		}
 		entry_ptr++;
