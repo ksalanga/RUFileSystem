@@ -437,28 +437,35 @@ static int rufs_readdir(const char *path, void *buffer, fuse_fill_dir_t filler, 
 static int rufs_mkdir(const char *path, mode_t mode) {
 
 	// Step 1: Use dirname() and basename() to separate parent directory path and target directory name
-	char *lastSlash = strrchr(path, '/');
-    char *base = lastSlash ? lastSlash + 1 : szSomeFileName;
+	char *lastSlash = strrchr((char *)path, '/');
+    const char *base = lastSlash ? lastSlash + 1 : path;
 
-    char dir[lastSlash + 1 - &szSomeFileName[0]];
-	memcpy(&dir, path, lastSlash + 1 - &szSomeFileName[0]);
+    char dir[lastSlash + 1 - path];
+	memcpy(&dir, path, lastSlash + 1 - path);
 
 	// Step 2: Call get_node_by_path() to get inode of parent directory
-	struct inode* dir_inode;
-	if (get_node_by_path(dir, path, dir_inode)) {
+	struct inode dir_inode;
+	if (get_node_by_path(dir, 0, &dir_inode)) {
 		// Step 3: Call get_avail_ino() to get an available dir_inode number
 		int avail_ino = get_avail_ino();
+		int avail_block = get_avail_blkno();
 
-		if (avail_ino != -1) {
+		if (avail_ino != -1 && avail_block != -1) {
 			// Step 4: Call dir_add() to add directory entry of target directory to parent directory
 			dir_add(dir_inode, avail_ino, base, sizeof(base));
 
 			// Step 5: Update inode for target directory
 			struct inode target_dir_inode;
+			target_dir_inode.ino = avail_ino;
+			target_dir_inode.valid = 1;
+			target_dir_inode.type = DIRECTORY;
+			target_dir_inode.size = 0;
+			target_dir_inode.direct_ptr[0] = (superblock.d_start_blk + avail_block) * BLOCK_SIZE;
 
 			// Step 6: Call writei() to write inode to disk
-		} else {
-			return 0;
+			writei(avail_ino, &target_dir_inode);
+
+			return 1;
 		}
 	}
 	
