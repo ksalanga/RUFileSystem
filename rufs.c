@@ -372,7 +372,7 @@ static int rufs_getattr(const char *path, struct stat *stbuf) {
 	if(check == 0){
 		return -1; // not found
 	}
-		stbuf->st_mode   = inode->type;
+		stbuf->st_mode   = S_IFDIR | 0755; //WHAT TO PUT HERE?
 		stbuf->st_nlink  = inode->link;
 		stbuf->st_size = inode->size;
 		time(&stbuf->st_mtime);
