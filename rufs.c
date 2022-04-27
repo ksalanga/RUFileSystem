@@ -431,17 +431,27 @@ static int rufs_mkdir(const char *path, mode_t mode) {
 	char *lastSlash = strrchr(path, '/');
     char *base = lastSlash ? lastSlash + 1 : szSomeFileName;
 
-    char *dir = malloc(lastSlash + 1 - &szSomeFileName[0]);
+    char dir[lastSlash + 1 - &szSomeFileName[0]];
+	memcpy(&dir, path, lastSlash + 1 - &szSomeFileName[0]);
 
 	// Step 2: Call get_node_by_path() to get inode of parent directory
+	struct inode* dir_inode;
+	if (get_node_by_path(dir, path, dir_inode)) {
+		// Step 3: Call get_avail_ino() to get an available dir_inode number
+		int avail_ino = get_avail_ino();
 
-	// Step 3: Call get_avail_ino() to get an available inode number
+		if (avail_ino != -1) {
+			// Step 4: Call dir_add() to add directory entry of target directory to parent directory
+			dir_add(dir_inode, avail_ino, base, sizeof(base));
 
-	// Step 4: Call dir_add() to add directory entry of target directory to parent directory
+			// Step 5: Update inode for target directory
+			struct inode target_dir_inode;
 
-	// Step 5: Update inode for target directory
-
-	// Step 6: Call writei() to write inode to disk
+			// Step 6: Call writei() to write inode to disk
+		} else {
+			return 0;
+		}
+	}
 	
 
 	return 0;
