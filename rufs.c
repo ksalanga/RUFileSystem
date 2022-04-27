@@ -162,10 +162,26 @@ int dir_add(struct inode dir_inode, uint16_t f_ino, const char *fname, size_t na
 	// Update directory inode
 
 	// Write directory entry
+	int data_block_index = dir_inode.direct_ptr[0] / BLOCK_SIZE;
+	char dirent_block[BLOCK_SIZE];
+	bio_read(data_block_index, &dirent_block);
+	struct dirent *entry_ptr = &dirent_block;
 
-    readi(f_ino, dir_inode);
-	if(dirent(dir_inode.direct_ptr))
-	struct dirent* entries = dirent(dir_inode.direct_ptr);
+	int numEntries = BLOCK_SIZE / sizeof(struct dirent);
+
+	for(int i = 0; i < numEntries; i++){
+		if (entry_ptr->valid && strcmp(entry_ptr->name, fname) == 0) {
+			return 1;
+		}else if(!entry_ptr->valid){
+			entry_ptr->valid = 1;
+			entry_ptr->len = name_len;
+			entry_ptr->ino = f_ino;
+			entry_ptr->name = fname;
+			bio_write(data_block_index, dirent_block);
+			return 1;
+		}
+		entry_ptr++;
+	}
 
 
 
