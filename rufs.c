@@ -163,6 +163,12 @@ int dir_add(struct inode dir_inode, uint16_t f_ino, const char *fname, size_t na
 
 	// Write directory entry
 
+    readi(f_ino, dir_inode);
+	if(dirent(dir_inode.direct_ptr))
+	struct dirent* entries = dirent(dir_inode.direct_ptr);
+
+
+
 	return 0;
 }
 
