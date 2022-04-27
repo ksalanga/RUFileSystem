@@ -412,9 +412,12 @@ static int rufs_readdir(const char *path, void *buffer, fuse_fill_dir_t filler, 
 	int numEntries = BLOCK_SIZE / sizeof(struct dirent);
 
 	for(int i = 0; i < numEntries; i++){
-		bio_read(entry_ptr, buffer);
-		memcpy(filler, entry_ptr);
+		if(entry_ptr->valid){
+			memcpy(filler, entry_ptr, sizeof(struct dirent));
+		}
 		entry_ptr++;
+		&filler = &filler + offset; 
+
 	}
 
 
