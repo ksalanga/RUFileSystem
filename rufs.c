@@ -380,6 +380,15 @@ static int rufs_opendir(const char *path, struct fuse_file_info *fi) {
 
 	// Step 2: If not find, return -1
 
+	
+	int check = get_node_by_path(path,0,0);
+
+	if(check == 0){
+		return -1; // not found
+	}else{
+		return 1; // found
+	}
+
     return 0;
 }
 
@@ -388,6 +397,26 @@ static int rufs_readdir(const char *path, void *buffer, fuse_fill_dir_t filler, 
 	// Step 1: Call get_node_by_path() to get inode from path
 
 	// Step 2: Read directory entries from its data blocks, and copy them to filler
+
+	struct inode* inode;
+	int check = get_node_by_path(path,0,inode);
+	if(check == 0){
+		return -1; // not found
+	}
+
+	int data_block_index = inode.direct_ptr[0] / BLOCK_SIZE;
+	char dirent_block[BLOCK_SIZE];
+	bio_read(data_block_index, &dirent_block);
+	struct dirent *entry_ptr = &dirent_block;
+
+	int numEntries = BLOCK_SIZE / sizeof(struct dirent);
+
+	for(int i = 0; i < numEntries; i++){
+		bio_read(entry_ptr, buffer);
+		memcpy(filler, entry_ptr);
+		entry_ptr++;
+	}
+
 
 	return 0;
 }
