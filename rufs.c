@@ -632,16 +632,45 @@ static int rufs_write(const char *path, const char *buffer, size_t size, off_t o
 static int rufs_unlink(const char *path) {
 
 	// Step 1: Use dirname() and basename() to separate parent directory path and target file name
+	char *lastSlash = strrchr(path, '/');
+    const char *base = lastSlash ? lastSlash + 1 : path;
+
+    char dir[lastSlash + 1 - path];
+	memcpy(&dir, path, lastSlash + 1 - path);
 
 	// Step 2: Call get_node_by_path() to get inode of target file
+	struct inode* target_file;
+	if (!get_node_by_path(path, 0, target_file)) {
+		return -1;
+	}
 
 	// Step 3: Clear data block bitmap of target file
+	int num_blocks = target_file->size / (int) BLOCK_SIZE + 1;
+
+	for (int i = 0; i < num_blocks; i++) {
+		unset_bitmap(data_bitmap, target_file->direct_ptr[i] / (int) BLOCK_SIZE);
+	}
+
+	char data_bitmap_block[BLOCK_SIZE];
+	memcpy(data_bitmap_block, data_bitmap, superblock.max_dnum / 8);
+	bio_write(superblock.d_bitmap_blk, data_bitmap_block);
 
 	// Step 4: Clear inode bitmap and its data block
+	unset_bitmap(inode_bitmap, target_file->ino);
 
+	char inode_bitmap_block[BLOCK_SIZE];
+	memcpy(inode_bitmap_block, inode_bitmap, superblock.max_inum / 8);
+	bio_write(superblock.i_bitmap_blk, inode_bitmap_block);
+
+	target_file->valid = 0;
+	writei(target_file->ino, target_file);
+
+	struct inode parent_dir;
 	// Step 5: Call get_node_by_path() to get inode of parent directory
+	get_node_by_path(dir, 0, &parent_dir);
 
 	// Step 6: Call dir_remove() to remove directory entry of target file in its parent directory
+	dir_remove(parent_dir, base, sizeof(base));
 
 	return 0;
 }
