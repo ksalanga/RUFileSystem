@@ -516,20 +516,40 @@ static int rufs_releasedir(const char *path, struct fuse_file_info *fi) {
     return 0;
 }
 
-static int rufs_create(const char *path, mode_t mode, struct fuse_file_info *fi) {
+static int rufs_create(const char *path, mode_t mode, struct fuse_file_info *fi) { // me
 
 	// Step 1: Use dirname() and basename() to separate parent directory path and target file name
 
+	char *lastSlash = strrchr(path, '/');
+    const char *base = lastSlash ? lastSlash + 1 : path;
+
+    char dir[lastSlash + 1 - path];
+	memcpy(&dir, path, lastSlash + 1 - path);
+
 	// Step 2: Call get_node_by_path() to get inode of parent directory
-
+	struct inode target_dir_inode;
+	if (get_node_by_path(path, 0, &target_dir_inode)) {
 	// Step 3: Call get_avail_ino() to get an available inode number
+		int avail_ino = get_avail_ino();
+		if (avail_ino != -1) {
+			// Step 4: Call dir_add() to add directory entry of target directory to parent directory
+			dir_add(target_dir_inode, avail_ino, base, sizeof(base));
+			// Step 5: Update inode for target file
+			struct inode target_file_inode;
+			target_file_inode.ino = avail_ino;
+			target_file_inode.valid = 1;
+			target_file_inode.type = FILE;
+			target_file_inode.size = 0;
+			target_file_inode.direct_ptr[0] = (superblock.d_start_blk + avail_block) * BLOCK_SIZE;
 
-	// Step 4: Call dir_add() to add directory entry of target file to parent directory
+			// Step 6: Call writei() to write inode to disk
+			writei(avail_ino, &target_file_inode);
 
-	// Step 5: Update inode for target file
+			return 1;
 
-	// Step 6: Call writei() to write inode to disk
+		}
 
+	}
 	return 0;
 }
 
@@ -588,7 +608,7 @@ static int rufs_read(const char *path, char *buffer, size_t size, off_t offset, 
 	return bytes_copied;
 }
 
-static int rufs_write(const char *path, const char *buffer, size_t size, off_t offset, struct fuse_file_info *fi) {
+static int rufs_write(const char *path, const char *buffer, size_t size, off_t offset, struct fuse_file_info *fi) { // me
 	// Step 1: You could call get_node_by_path() to get inode from path
 
 	// Step 2: Based on size and offset, read its data blocks from disk
