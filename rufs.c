@@ -645,7 +645,7 @@ static int rufs_write(const char *path, const char *buffer, size_t size, off_t o
 		// Step 3: write the correct amount of data from offset to buffer
 
 		int avail_block = get_avail_blkno();
-		target_file_inode.direct_ptr[first_block_index] = (superblock.d_start_blk + avail_block) * BLOCK_SIZE;
+		inode->direct_ptr[first_block_index] = (superblock.d_start_blk + avail_block) * BLOCK_SIZE;
 		char data_block[BLOCK_SIZE];
 		bio_write(data_block, inode->direct_ptr[first_block_index] / BLOCK_SIZE);
 
