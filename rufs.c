@@ -672,9 +672,9 @@ static int rufs_write(const char *path, const char *buffer, size_t size, off_t o
 	}
 
 	int remaining_size = size - bytes_copied;
-	inode->size = size0;
+	inode->size = inode->size + size;
 	bio_write(data_block, inode->direct_ptr[last_block_index]);
-	memcpy &data_block, (buffer + bytes_copied, remaining_size);
+	memcpy (&data_block, buffer + bytes_copied, remaining_size);
 	bytes_copied += remaining_size;
 
 
