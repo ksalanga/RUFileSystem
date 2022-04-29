@@ -419,7 +419,6 @@ static int rufs_readdir(const char *path, void *buffer, fuse_fill_dir_t filler, 
 	struct dirent *entry_ptr = (struct dirent *)&dirent_block;
 
 	int numEntries = BLOCK_SIZE / sizeof(struct dirent);
-	int counter = 0;
 	for(int i = 0; i < numEntries; i++){
 		if(entry_ptr->valid){
 			filler(buffer, entry_ptr->name, NULL, 0);
@@ -554,9 +553,9 @@ static int rufs_create(const char *path, mode_t mode, struct fuse_file_info *fi)
 }
 
 static int rufs_open(const char *path, struct fuse_file_info *fi) {
-	struct inode* inode;
+	struct inode inode;
 	// Step 1: Call get_node_by_path() to get inode from path
-	if (get_node_by_path(path, 0, inode)) {
+	if (get_node_by_path(path, 0, &inode)) {
 		return 0;
 	}
 	// Step 2: If not find, return -1
@@ -567,8 +566,8 @@ static int rufs_open(const char *path, struct fuse_file_info *fi) {
 static int rufs_read(const char *path, char *buffer, size_t size, off_t offset, struct fuse_file_info *fi) {
 
 	// Step 1: You could call get_node_by_path() to get inode from path
-	struct inode* inode;
-	if (!get_node_by_path(path, 0, inode) || offset / (int) BLOCK_SIZE > 15) {
+	struct inode inode;
+	if (!get_node_by_path(path, 0, &inode) || offset / (int) BLOCK_SIZE > 15) {
 		return 0;
 	}
 
@@ -577,13 +576,13 @@ static int rufs_read(const char *path, char *buffer, size_t size, off_t offset, 
 	int last_block_index = offset + size / (int) BLOCK_SIZE;
 	last_block_index = last_block_index < 16 ? last_block_index : 15;
 
-	if ((void *)inode->direct_ptr[first_block_index] == NULL) {
+	if (!inode.direct_ptr[first_block_index]) {
 		return 0;
 	}
 
 	// Step 3: copy the correct amount of data from offset to buffer
 	char data_block[BLOCK_SIZE];
-	bio_read(inode->direct_ptr[first_block_index] / BLOCK_SIZE, data_block);
+	bio_read(inode.direct_ptr[first_block_index] / BLOCK_SIZE, data_block);
 
 	if (first_block_index == last_block_index) {
 		memcpy(buffer, &data_block[offset], size);
@@ -594,21 +593,21 @@ static int rufs_read(const char *path, char *buffer, size_t size, off_t offset, 
 	memcpy(buffer, &data_block[offset], bytes_copied);
 	
 	for (int i = first_block_index + 1; i < last_block_index; i++) {
-		if ((void *)inode->direct_ptr[i] == NULL) {
+		if (!inode.direct_ptr[i]) {
 			return 0;
 		} else {
-			bio_read(inode->direct_ptr[i] / (int) BLOCK_SIZE, data_block);
+			bio_read(inode.direct_ptr[i] / (int) BLOCK_SIZE, data_block);
 			memcpy(buffer + bytes_copied, &data_block, BLOCK_SIZE);
 			bytes_copied += BLOCK_SIZE;
 		}
 	}
 
-	if ((void *)inode->direct_ptr[last_block_index] == NULL) {
+	if (!inode.direct_ptr[last_block_index]) {
 		return 0;
 	}
 
 	int remaining_size = size - bytes_copied;
-	bio_read(inode->direct_ptr[last_block_index], data_block);
+	bio_read(inode.direct_ptr[last_block_index], data_block);
 	memcpy(buffer + bytes_copied, &data_block, remaining_size);
 	bytes_copied += remaining_size;
 
@@ -629,8 +628,8 @@ static int rufs_write(const char *path, const char *buffer, size_t size, off_t o
 
 
 	// Step 1: You could call get_node_by_path() to get inode from path
-	struct inode* inode;
-	if (!get_node_by_path(path, 0, inode) || offset / (int) BLOCK_SIZE > 15) {
+	struct inode inode;
+	if (!get_node_by_path(path, 0, &inode) || offset / (int) BLOCK_SIZE > 15) {
 		return 0;
 	}
 
@@ -641,13 +640,13 @@ static int rufs_write(const char *path, const char *buffer, size_t size, off_t o
 
 	char data_block[BLOCK_SIZE];
 	int bytes_copied = BLOCK_SIZE - offset;
-	if ((void *)inode->direct_ptr[first_block_index] == NULL) {
+	if (!inode.direct_ptr[first_block_index]) {
 		// Step 3: write the correct amount of data from offset to buffer
 
 		int avail_block = get_avail_blkno();
-		inode->direct_ptr[first_block_index] = (superblock.d_start_blk + avail_block) * BLOCK_SIZE;
+		inode.direct_ptr[first_block_index] = (superblock.d_start_blk + avail_block) * BLOCK_SIZE;
 		memcpy(&data_block[offset], buffer, bytes_copied);
-		bio_write(inode->direct_ptr[first_block_index] / BLOCK_SIZE, &data_block);
+		bio_write(inode.direct_ptr[first_block_index] / (int) BLOCK_SIZE, &data_block);
 
 	}
 
@@ -657,24 +656,24 @@ static int rufs_write(const char *path, const char *buffer, size_t size, off_t o
 	}
 
 	for (int i = first_block_index + 1; i < last_block_index; i++) {
-		if ((void *)inode->direct_ptr[i] == NULL) {
+		if (!inode.direct_ptr[i]) {
 			int avail_block = get_avail_blkno();
-			inode->direct_ptr[i] = (superblock.d_start_blk + avail_block) * BLOCK_SIZE;
+			inode.direct_ptr[i] = (superblock.d_start_blk + avail_block) * BLOCK_SIZE;
 			char data_block[BLOCK_SIZE];
 			memcpy(&data_block, buffer + bytes_copied, BLOCK_SIZE);
-			bio_write(data_block, inode->direct_ptr[i] / BLOCK_SIZE);
+			bio_write(inode.direct_ptr[i] / (int) BLOCK_SIZE, &data_block);
 			bytes_copied += BLOCK_SIZE;
 		}
 	}
 	
 	int remaining_size = size - bytes_copied;
 	bytes_copied += remaining_size;
-	if ((void *)inode->direct_ptr[last_block_index] == NULL) {
+	if (!inode.direct_ptr[last_block_index]) {
 		int avail_block = get_avail_blkno();
-		inode->direct_ptr[last_block_index] = (superblock.d_start_blk + avail_block) * BLOCK_SIZE;
+		inode.direct_ptr[last_block_index] = (superblock.d_start_blk + avail_block) * BLOCK_SIZE;
 		char data_block[BLOCK_SIZE];
 		memcpy(&data_block, buffer + bytes_copied, BLOCK_SIZE);
-		bio_write(data_block, inode->direct_ptr[last_block_index] / BLOCK_SIZE);
+		bio_write(inode.direct_ptr[last_block_index] / (int) BLOCK_SIZE, &data_block);
 	}
 
 
@@ -694,16 +693,16 @@ static int rufs_unlink(const char *path) {
 	memcpy(&dir, path, lastSlash + 1 - path);
 
 	// Step 2: Call get_node_by_path() to get inode of target file
-	struct inode* target_file;
-	if (!get_node_by_path(path, 0, target_file)) {
+	struct inode target_file;
+	if (!get_node_by_path(path, 0, &target_file)) {
 		return -1;
 	}
 
 	// Step 3: Clear data block bitmap of target file
-	int num_blocks = target_file->size / (int) BLOCK_SIZE + 1;
+	int num_blocks = target_file.size / (int) BLOCK_SIZE + 1;
 
 	for (int i = 0; i < num_blocks; i++) {
-		unset_bitmap(data_bitmap, target_file->direct_ptr[i] / (int) BLOCK_SIZE);
+		unset_bitmap(data_bitmap, target_file.direct_ptr[i] / (int) BLOCK_SIZE);
 	}
 
 	char data_bitmap_block[BLOCK_SIZE];
@@ -711,14 +710,14 @@ static int rufs_unlink(const char *path) {
 	bio_write(superblock.d_bitmap_blk, data_bitmap_block);
 
 	// Step 4: Clear inode bitmap and its data block
-	unset_bitmap(inode_bitmap, target_file->ino);
+	unset_bitmap(inode_bitmap, target_file.ino);
 
 	char inode_bitmap_block[BLOCK_SIZE];
 	memcpy(inode_bitmap_block, inode_bitmap, superblock.max_inum / 8);
 	bio_write(superblock.i_bitmap_blk, inode_bitmap_block);
 
-	target_file->valid = 0;
-	writei(target_file->ino, target_file);
+	target_file.valid = 0;
+	writei(target_file.ino, &target_file);
 
 	struct inode parent_dir;
 	// Step 5: Call get_node_by_path() to get inode of parent directory
