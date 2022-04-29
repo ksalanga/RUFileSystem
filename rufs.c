@@ -649,26 +649,25 @@ static int rufs_write(const char *path, const char *buffer, size_t size, off_t o
 		char data_block[BLOCK_SIZE];
 		bio_write(data_block, inode->direct_ptr[first_block_index] / BLOCK_SIZE);
 
-		if (first_block_index == last_block_index) {
-			memcpy(&data_block[offset], buffer, size);
-			return size;
-		}
-
-		int bytes_copied = BLOCK_SIZE - offset;
-		memcpy(&data_block[offset], buffer, bytes_copied);
-		
-		for (int i = first_block_index + 1; i < last_block_index; i++) {
-			if ((void *)inode->direct_ptr[i] == NULL) {
-				return 0;
-			} else {
-				bio_write(data_block, inode->direct_ptr[i] / (int) BLOCK_SIZE);
-				memcpy(&data_block, buffer + bytes_copied, BLOCK_SIZE);
-				bytes_copied += BLOCK_SIZE;
-			}
-		}
 	}
 
+	if (first_block_index == last_block_index) {
+		memcpy(&data_block[offset], buffer, size);
+		return size;
+	}
 
+	int bytes_copied = BLOCK_SIZE - offset;
+	memcpy(&data_block[offset], buffer, bytes_copied);
+
+	for (int i = first_block_index + 1; i < last_block_index; i++) {
+		if ((void *)inode->direct_ptr[i] == NULL) {
+			return 0;
+		} else {
+			bio_write(data_block, inode->direct_ptr[i] / (int) BLOCK_SIZE);
+			memcpy(&data_block, buffer + bytes_copied, BLOCK_SIZE);
+			bytes_copied += BLOCK_SIZE;
+		}
+	}
 	if ((void *)inode->direct_ptr[last_block_index] == NULL) {
 		return 0;
 	}
