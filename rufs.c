@@ -534,24 +534,58 @@ static int rufs_create(const char *path, mode_t mode, struct fuse_file_info *fi)
 }
 
 static int rufs_open(const char *path, struct fuse_file_info *fi) {
-
+	struct inode* inode;
 	// Step 1: Call get_node_by_path() to get inode from path
-
+	if (get_node_by_path(path, 0, inode)) {
+		return 0;
+	}
 	// Step 2: If not find, return -1
 
-	return 0;
+	return -1;
 }
 
 static int rufs_read(const char *path, char *buffer, size_t size, off_t offset, struct fuse_file_info *fi) {
 
 	// Step 1: You could call get_node_by_path() to get inode from path
+	struct inode* inode;
+	if (!get_node_by_path(path, 0, inode) || offset / (int) BLOCK_SIZE > 15) {
+		return 0;
+	}
 
 	// Step 2: Based on size and offset, read its data blocks from disk
+	int first_block = offset / (int) BLOCK_SIZE;
+	int last_block = offset + size / (int) BLOCK_SIZE;
+	last_block = last_block < 16 ? last_block : 15;
+
+	if ((void *)inode->direct_ptr[first_block] == NULL) {
+		return 0;
+	}
 
 	// Step 3: copy the correct amount of data from offset to buffer
+	char data_block[BLOCK_SIZE];
+	bio_read(inode->direct_ptr[first_block] / BLOCK_SIZE, data_block);
+
+	if (first_block == last_block) {
+		memcpy(buffer, &data_block[offset], size);
+		return size;
+	}
+
+	int bytes_copied = BLOCK_SIZE - offset;
+	memcpy(buffer, &data_block[offset], bytes_copied);
+	
+	for (int i = first_block + 1; i < last_block; i++) {
+		if ((void *)inode->direct_ptr[i] == NULL) {
+			return 0;
+		} else {
+			bio_read(inode->direct_ptr[i] / BLOCK_SIZE, data_block);
+			// memcpy(buffer + bytes_copied, &data_block, )
+		}
+	}
+
+	
 
 	// Note: this function should return the amount of bytes you copied to buffer
-	return 0;
+	return bytes_copied;
 }
 
 static int rufs_write(const char *path, const char *buffer, size_t size, off_t offset, struct fuse_file_info *fi) {
