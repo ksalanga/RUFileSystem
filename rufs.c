@@ -573,19 +573,19 @@ static int rufs_read(const char *path, char *buffer, size_t size, off_t offset, 
 	}
 
 	// Step 2: Based on size and offset, read its data blocks from disk
-	int first_block = offset / (int) BLOCK_SIZE;
-	int last_block = offset + size / (int) BLOCK_SIZE;
-	last_block = last_block < 16 ? last_block : 15;
+	int first_block_index = offset / (int) BLOCK_SIZE;
+	int last_block_index = offset + size / (int) BLOCK_SIZE;
+	last_block_index = last_block_index < 16 ? last_block_index : 15;
 
-	if ((void *)inode->direct_ptr[first_block] == NULL) {
+	if ((void *)inode->direct_ptr[first_block_index] == NULL) {
 		return 0;
 	}
 
 	// Step 3: copy the correct amount of data from offset to buffer
 	char data_block[BLOCK_SIZE];
-	bio_read(inode->direct_ptr[first_block] / BLOCK_SIZE, data_block);
+	bio_read(inode->direct_ptr[first_block_index] / BLOCK_SIZE, data_block);
 
-	if (first_block == last_block) {
+	if (first_block_index == last_block_index) {
 		memcpy(buffer, &data_block[offset], size);
 		return size;
 	}
@@ -593,16 +593,24 @@ static int rufs_read(const char *path, char *buffer, size_t size, off_t offset, 
 	int bytes_copied = BLOCK_SIZE - offset;
 	memcpy(buffer, &data_block[offset], bytes_copied);
 	
-	for (int i = first_block + 1; i < last_block; i++) {
+	for (int i = first_block_index + 1; i < last_block_index; i++) {
 		if ((void *)inode->direct_ptr[i] == NULL) {
 			return 0;
 		} else {
-			bio_read(inode->direct_ptr[i] / BLOCK_SIZE, data_block);
-			// memcpy(buffer + bytes_copied, &data_block, )
+			bio_read(inode->direct_ptr[i] / (int) BLOCK_SIZE, data_block);
+			memcpy(buffer + bytes_copied, &data_block, BLOCK_SIZE);
+			bytes_copied += BLOCK_SIZE;
 		}
 	}
 
-	
+	if ((void *)inode->direct_ptr[last_block_index] == NULL) {
+		return 0;
+	}
+
+	int remaining_size = size - bytes_copied;
+	bio_read(inode->direct_ptr[last_block_index], data_block);
+	memcpy(buffer + bytes_copied, &data_block, remaining_size);
+	bytes_copied += remaining_size;
 
 	// Note: this function should return the amount of bytes you copied to buffer
 	return bytes_copied;
