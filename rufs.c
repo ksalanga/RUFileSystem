@@ -639,13 +639,13 @@ static int rufs_write(const char *path, const char *buffer, size_t size, off_t o
 	int last_block_index = offset + size / (int) BLOCK_SIZE;
 	last_block_index = last_block_index < 16 ? last_block_index : 15;
 
+	char data_block[BLOCK_SIZE];
 	if ((void *)inode->direct_ptr[first_block_index] == NULL) {
 		// Step 3: write the correct amount of data from offset to buffer
 
 		int avail_block = get_avail_blkno();
 		inode->direct_ptr[first_block_index] = (superblock.d_start_blk + avail_block) * BLOCK_SIZE;
-		char data_block[BLOCK_SIZE];
-		bio_write(data_block, inode->direct_ptr[first_block_index] / BLOCK_SIZE);
+		bio_write(inode->direct_ptr[first_block_index] / BLOCK_SIZE, &data_block);
 
 	}
 
@@ -661,7 +661,7 @@ static int rufs_write(const char *path, const char *buffer, size_t size, off_t o
 		if ((void *)inode->direct_ptr[i] == NULL) {
 			return 0;
 		} else {
-			bio_write(data_block, inode->direct_ptr[i] / (int) BLOCK_SIZE);
+			bio_write(inode->direct_ptr[i] / (int) BLOCK_SIZE, &data_block);
 			memcpy(&data_block, buffer + bytes_copied, BLOCK_SIZE);
 			bytes_copied += BLOCK_SIZE;
 		}
@@ -671,7 +671,7 @@ static int rufs_write(const char *path, const char *buffer, size_t size, off_t o
 	}
 
 	int remaining_size = size - bytes_copied;
-	bio_write(data_block, inode->direct_ptr[last_block_index]);
+	bio_write(inode->direct_ptr[last_block_index], &data_block);
 	memcpy (&data_block, buffer + bytes_copied, remaining_size);
 	bytes_copied += remaining_size;
 
