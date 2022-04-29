@@ -647,7 +647,7 @@ static int rufs_write(const char *path, const char *buffer, size_t size, off_t o
 
 	// Step 3: write the correct amount of data from offset to buffer
 	char data_block[BLOCK_SIZE];
-	bio_read(inode->direct_ptr[first_block_index] / BLOCK_SIZE, data_block);
+	bio_write(data_block, inode->direct_ptr[first_block_index] / BLOCK_SIZE);
 
 	if (first_block_index == last_block_index) {
 		memcpy(&data_block[offset], buffer, size);
