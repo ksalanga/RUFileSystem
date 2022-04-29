@@ -666,6 +666,9 @@ static int rufs_write(const char *path, const char *buffer, size_t size, off_t o
 			bytes_copied += BLOCK_SIZE;
 		}
 	}
+	
+	int remaining_size = size - bytes_copied;
+	bytes_copied += remaining_size;
 	if ((void *)inode->direct_ptr[last_block_index] == NULL) {
 		int avail_block = get_avail_blkno();
 		inode->direct_ptr[last_block_index] = (superblock.d_start_blk + avail_block) * BLOCK_SIZE;
@@ -674,8 +677,7 @@ static int rufs_write(const char *path, const char *buffer, size_t size, off_t o
 		bio_write(data_block, inode->direct_ptr[last_block_index] / BLOCK_SIZE);
 	}
 
-	int remaining_size = size - bytes_copied;
-	bytes_copied += remaining_size;
+
 
 
 	// Note: this function should return the amount of bytes you copied to buffer
