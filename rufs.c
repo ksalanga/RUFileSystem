@@ -516,7 +516,7 @@ static int rufs_releasedir(const char *path, struct fuse_file_info *fi) {
     return 0;
 }
 
-static int rufs_create(const char *path, mode_t mode, struct fuse_file_info *fi) { // me
+static int rufs_create(const char *path, mode_t mode, struct fuse_file_info *fi) { 
 
 	// Step 1: Use dirname() and basename() to separate parent directory path and target file name
 
@@ -531,7 +531,9 @@ static int rufs_create(const char *path, mode_t mode, struct fuse_file_info *fi)
 	if (get_node_by_path(path, 0, &target_dir_inode)) {
 	// Step 3: Call get_avail_ino() to get an available inode number
 		int avail_ino = get_avail_ino();
-		if (avail_ino != -1) {
+		int avail_block = get_avail_blkno();
+
+		if (avail_ino != -1 && avail_block != -1) {
 			// Step 4: Call dir_add() to add directory entry of target directory to parent directory
 			dir_add(target_dir_inode, avail_ino, base, sizeof(base));
 			// Step 5: Update inode for target file
@@ -616,7 +618,7 @@ static int rufs_read(const char *path, char *buffer, size_t size, off_t offset, 
 	return bytes_copied;
 }
 
-static int rufs_write(const char *path, const char *buffer, size_t size, off_t offset, struct fuse_file_info *fi) { // me
+static int rufs_write(const char *path, const char *buffer, size_t size, off_t offset, struct fuse_file_info *fi) { 
 	// Step 1: You could call get_node_by_path() to get inode from path
 
 	// Step 2: Based on size and offset, read its data blocks from disk
@@ -626,6 +628,57 @@ static int rufs_write(const char *path, const char *buffer, size_t size, off_t o
 	// Step 4: Update the inode info and write it to disk
 
 	// Note: this function should return the amount of bytes you write to disk
+
+
+	// Step 1: You could call get_node_by_path() to get inode from path
+	struct inode* inode;
+	if (!get_node_by_path(path, 0, inode) || offset / (int) BLOCK_SIZE > 15) {
+		return 0;
+	}
+
+	// Step 2: Based on size and offset, read its data blocks from disk
+	int first_block_index = offset / (int) BLOCK_SIZE;
+	int last_block_index = offset + size / (int) BLOCK_SIZE;
+	last_block_index = last_block_index < 16 ? last_block_index : 15;
+
+	if ((void *)inode->direct_ptr[first_block_index] == NULL) {
+		return 0;
+	}
+
+	// Step 3: write the correct amount of data from offset to buffer
+	char data_block[BLOCK_SIZE];
+	bio_write(data_block, inode->direct_ptr[first_block_index] / BLOCK_SIZE);
+
+	if (first_block_index == last_block_index) {
+		memcpy(&data_block[offset], buffer, size);
+		return size;
+	}
+
+	int bytes_copied = BLOCK_SIZE - offset;
+	memcpy(&data_block[offset], buffer, bytes_copied);
+	
+	for (int i = first_block_index + 1; i < last_block_index; i++) {
+		if ((void *)inode->direct_ptr[i] == NULL) {
+			return 0;
+		} else {
+			bio_write(data_block, inode->direct_ptr[i] / (int) BLOCK_SIZE);
+			memcpy(&data_block, buffer + bytes_copied, BLOCK_SIZE);
+			bytes_copied += BLOCK_SIZE;
+		}
+	}
+
+	if ((void *)inode->direct_ptr[last_block_index] == NULL) {
+		return 0;
+	}
+
+	int remaining_size = size - bytes_copied;
+	inode->size = inode->size + size;
+	bio_write(data_block, inode->direct_ptr[last_block_index]);
+	memcpy (&data_block, buffer + bytes_copied, remaining_size);
+	bytes_copied += remaining_size;
+
+
+	// Note: this function should return the amount of bytes you copied to buffer
 	return size;
 }
 
