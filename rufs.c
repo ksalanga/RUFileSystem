@@ -659,20 +659,22 @@ static int rufs_write(const char *path, const char *buffer, size_t size, off_t o
 
 	for (int i = first_block_index + 1; i < last_block_index; i++) {
 		if ((void *)inode->direct_ptr[i] == NULL) {
-			return 0;
-		} else {
-			bio_write(inode->direct_ptr[i] / (int) BLOCK_SIZE, &data_block);
-			memcpy(&data_block, buffer + bytes_copied, BLOCK_SIZE);
+			int avail_block = get_avail_blkno();
+			inode->direct_ptr[i] = (superblock.d_start_blk + avail_block) * BLOCK_SIZE;
+			char data_block[BLOCK_SIZE];
+			bio_write(data_block, inode->direct_ptr[i] / BLOCK_SIZE);
 			bytes_copied += BLOCK_SIZE;
+			memcpy(&data_block, buffer + bytes_copied, BLOCK_SIZE);
 		}
 	}
 	if ((void *)inode->direct_ptr[last_block_index] == NULL) {
-		return 0;
+		int avail_block = get_avail_blkno();
+		inode->direct_ptr[last_block_index] = (superblock.d_start_blk + avail_block) * BLOCK_SIZE;
+		char data_block[BLOCK_SIZE];
+		bio_write(data_block, inode->direct_ptr[last_block_index] / BLOCK_SIZE);
 	}
 
 	int remaining_size = size - bytes_copied;
-	bio_write(inode->direct_ptr[last_block_index], &data_block);
-	memcpy (&data_block, buffer + bytes_copied, remaining_size);
 	bytes_copied += remaining_size;
 
 
