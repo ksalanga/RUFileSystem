@@ -640,6 +640,7 @@ static int rufs_write(const char *path, const char *buffer, size_t size, off_t o
 	last_block_index = last_block_index < 16 ? last_block_index : 15;
 
 	char data_block[b_size];
+	int bytes_copied = (first_block_index + 1) * b_size - offset;
 	if (!inode.direct_ptr[first_block_index]) {
 		// Step 3: write the correct amount of data from offset to buffer
 
@@ -653,6 +654,8 @@ static int rufs_write(const char *path, const char *buffer, size_t size, off_t o
 		memcpy(&data_block[offset], buffer, bytes_copied);
 		bio_write(inode.direct_ptr[first_block_index] / ((int) BLOCK_SIZE), &data_block);	
 	}
+	memcpy(&data_block[offset % b_size], buffer, bytes_copied);
+	bio_write(inode.direct_ptr[first_block_index] / b_size, &data_block);
 
 	if (first_block_index == last_block_index) {
 		memcpy(&data_block[offset], buffer, size);
