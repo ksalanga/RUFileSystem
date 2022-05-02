@@ -194,7 +194,7 @@ int dir_add(struct inode dir_inode, uint16_t f_ino, const char *fname, size_t na
 			entry_ptr->len = name_len;
 			entry_ptr->ino = f_ino;
 			strcpy(entry_ptr->name, fname);
-			bio_write(data_block_index, dirent_block);
+			bio_write(data_block_index, &dirent_block);
 			return 1;
 		}
 		entry_ptr++;
