@@ -635,8 +635,8 @@ static int rufs_write(const char *path, const char *buffer, size_t size, off_t o
 	}
 
 	// Step 2: Based on size and offset, read its data blocks from disk
-	int first_block_index = offset / (int) BLOCK_SIZE;
-	int last_block_index = offset + size / (int) BLOCK_SIZE;
+	int first_block_index = offset / ((int) BLOCK_SIZE);
+	int last_block_index = (offset + size) / ((int) BLOCK_SIZE);
 	last_block_index = last_block_index < 16 ? last_block_index : 15;
 
 	char data_block[BLOCK_SIZE];
