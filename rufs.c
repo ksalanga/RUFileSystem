@@ -548,13 +548,11 @@ static int rufs_create(const char *path, mode_t mode, struct fuse_file_info *fi)
 
 			// Step 6: Call writei() to write inode to disk
 			writei(avail_ino, &target_file_inode);
-
-			return 1;
-
+			return 0;
 		}
 
 	}
-	return 0;
+	return -1;
 }
 
 static int rufs_open(const char *path, struct fuse_file_info *fi) {
