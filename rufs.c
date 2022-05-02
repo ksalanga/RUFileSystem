@@ -452,7 +452,7 @@ static int rufs_mkdir(const char *path, mode_t mode) {
 
 		if (avail_ino != -1 && avail_block != -1) {
 			// Step 4: Call dir_add() to add directory entry of target directory to parent directory
-			dir_add(dir_inode, avail_ino, base, sizeof(base));
+			dir_add(dir_inode, avail_ino, bname, strlen(bname + '\0'));
 
 			// Step 5: Update inode for target directory
 			struct inode target_dir_inode;
@@ -724,7 +724,7 @@ static int rufs_unlink(const char *path) {
 	get_node_by_path(dir, 0, &parent_dir);
 
 	// Step 6: Call dir_remove() to remove directory entry of target file in its parent directory
-	dir_remove(parent_dir, base, sizeof(base));
+	dir_remove(parent_dir, bname, strlen(bname + '\0'));
 
 	return 0;
 }
