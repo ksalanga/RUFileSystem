@@ -567,23 +567,23 @@ static int rufs_open(const char *path, struct fuse_file_info *fi) {
 static int rufs_read(const char *path, char *buffer, size_t size, off_t offset, struct fuse_file_info *fi) {
 
 	// Step 1: You could call get_node_by_path() to get inode from path
+	int b_size = ((int) BLOCK_SIZE);
 	struct inode inode;
-	if (!get_node_by_path(path, 0, &inode) || offset / ((int) BLOCK_SIZE) > 15) {
+	if (!get_node_by_path(path, 0, &inode) || offset / b_size > 15) {
 		return 0;
 	}
 
 	// Step 2: Based on size and offset, read its data blocks from disk
-	int first_block_index = offset / ((int) BLOCK_SIZE);
-	int last_block_index = (offset + size) / ((int) BLOCK_SIZE);
+	int first_block_index = offset / b_size;
+	int last_block_index = (offset + size - 1) / b_size;
 	last_block_index = last_block_index < 16 ? last_block_index : 15;
-
 	if (!inode.direct_ptr[first_block_index]) {
 		return 0;
 	}
 
 	// Step 3: copy the correct amount of data from offset to buffer
-	char data_block[BLOCK_SIZE];
-	bio_read(inode.direct_ptr[first_block_index] / BLOCK_SIZE, data_block);
+	char data_block[b_size];
+	bio_read(inode.direct_ptr[first_block_index] / b_size, &data_block);
 
 	if (first_block_index == last_block_index) {
 		memcpy(buffer, &data_block[offset], size);
@@ -597,9 +597,9 @@ static int rufs_read(const char *path, char *buffer, size_t size, off_t offset, 
 		if (!inode.direct_ptr[i]) {
 			return 0;
 		} else {
-			bio_read(inode.direct_ptr[i] / ((int) BLOCK_SIZE), data_block);
-			memcpy(buffer + bytes_copied, &data_block, BLOCK_SIZE);
-			bytes_copied += BLOCK_SIZE;
+			bio_read(inode.direct_ptr[i] / b_size, data_block);
+			memcpy(buffer + bytes_copied, &data_block, b_size);
+			bytes_copied += b_size;
 		}
 	}
 
@@ -626,21 +626,19 @@ static int rufs_write(const char *path, const char *buffer, size_t size, off_t o
 	// Step 4: Update the inode info and write it to disk
 
 	// Note: this function should return the amount of bytes you write to disk
-
+	int b_size = ((int) BLOCK_SIZE);
 
 	// Step 1: You could call get_node_by_path() to get inode from path
 	struct inode inode;
-	if (!get_node_by_path(path, 0, &inode) || offset / ((int) BLOCK_SIZE) > 15) {
+	if (!get_node_by_path(path, 0, &inode) || offset / b_size > 15) {
 		return 0;
 	}
 
 	// Step 2: Based on size and offset, read its data blocks from disk
-	int first_block_index = offset / ((int) BLOCK_SIZE);
-	int last_block_index = (offset + size) / ((int) BLOCK_SIZE);
+	int first_block_index = offset / b_size;
 	last_block_index = last_block_index < 16 ? last_block_index : 15;
 
-	char data_block[BLOCK_SIZE];
-	int bytes_copied = BLOCK_SIZE - offset;
+	char data_block[b_size];
 	if (!inode.direct_ptr[first_block_index]) {
 		// Step 3: write the correct amount of data from offset to buffer
 
