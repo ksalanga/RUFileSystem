@@ -663,6 +663,9 @@ static int rufs_write(const char *path, const char *buffer, size_t size, off_t o
 			inode.direct_ptr[i] = (superblock.d_start_blk + avail_block) * b_size;
 			writei(inode.ino, &inode);
 		}
+		memcpy(&data_block, buffer + bytes_copied, b_size);
+		bio_write(inode.direct_ptr[i] / b_size, &data_block);
+		bytes_copied += b_size;
 	}
 	
 	int remaining_size = size - bytes_copied;
@@ -672,9 +675,8 @@ static int rufs_write(const char *path, const char *buffer, size_t size, off_t o
 		inode.direct_ptr[last_block_index] = (superblock.d_start_blk + avail_block) * b_size;
 		writei(inode.ino, &inode);
 	}
-
-
-
+	memcpy(&data_block, buffer + bytes_copied, remaining_size);
+	bio_write(inode.direct_ptr[last_block_index] / b_size, &data_block);
 
 	inode.size += size;
 	writei(inode.ino, &inode);
