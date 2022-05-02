@@ -470,7 +470,7 @@ static int rufs_mkdir(const char *path, mode_t mode) {
 	}
 	
 
-	return -1;
+	return -ENOENT;
 }
 
 static int rufs_rmdir(const char *path) {
@@ -503,11 +503,10 @@ static int rufs_rmdir(const char *path) {
 		get_node_by_path((const char *)&dir, 0, &dir_inode);
 
 		// Step 6: Call dir_remove() to remove directory entry of target directory in its parent directory
-		dir_remove(dir_inode, base, strlen(base));
-		return 1;
+		return 0;
 	}
 
-	return 0;
+	return -ENOENT;
 }
 
 static int rufs_releasedir(const char *path, struct fuse_file_info *fi) {
