@@ -371,7 +371,7 @@ static int rufs_getattr(const char *path, struct stat *stbuf) {
 	struct inode inode;
 	int check = get_node_by_path(path,0, &inode);
 	if(check == 0){
-		return -1; // not found
+		return -ENOENT; // not found
 	}
 		if (inode.type == REG_FILE) {
 			stbuf->st_mode = S_IFREG | 0644;
@@ -398,9 +398,7 @@ static int rufs_opendir(const char *path, struct fuse_file_info *fi) {
 	int check = get_node_by_path(path,0, &inode);
 
 	if(check == 0){
-		return -1; // not found
-	}else{
-		return 1; // found
+		return -ENOENT; // not found
 	}
 
     return 0;
@@ -415,7 +413,7 @@ static int rufs_readdir(const char *path, void *buffer, fuse_fill_dir_t filler, 
 	struct inode inode;
 	int check = get_node_by_path(path,0, &inode);
 	if(check == 0){
-		return -1; // not found
+		return -ENOENT; // not found
 	}
 
 	int data_block_index = inode.direct_ptr[0] / BLOCK_SIZE;
@@ -531,11 +529,14 @@ static int rufs_create(const char *path, mode_t mode, struct fuse_file_info *fi)
 	// Step 2: Call get_node_by_path() to get inode of parent directory
 	struct inode target_dir_inode;
 	if (get_node_by_path(dname, 0, &target_dir_inode)) {
-	// Step 3: Call get_avail_ino() to get an available inode number
+
+		// Step 3: Call get_avail_ino() to get an available inode number
 		int avail_ino = get_avail_ino();
 		int avail_block = get_avail_blkno();
 
 		if (avail_ino != -1 && avail_block != -1) {
+
+	
 			// Step 4: Call dir_add() to add directory entry of target directory to parent directory
 			dir_add(target_dir_inode, avail_ino, bname, strlen(bname + '\0'));
 			// Step 5: Update inode for target file
@@ -546,12 +547,14 @@ static int rufs_create(const char *path, mode_t mode, struct fuse_file_info *fi)
 			target_file_inode.size = 0;
 			target_file_inode.direct_ptr[0] = (superblock.d_start_blk + avail_block) * BLOCK_SIZE;
 
+	
 			// Step 6: Call writei() to write inode to disk
 			writei(avail_ino, &target_file_inode);
 			return 0;
 		}
 
 	}
+
 	return -1;
 }
 
