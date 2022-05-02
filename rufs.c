@@ -694,7 +694,7 @@ static int rufs_unlink(const char *path) {
 	// Step 2: Call get_node_by_path() to get inode of target file
 	struct inode target_file;
 	if (!get_node_by_path(path, 0, &target_file)) {
-		return -1;
+		return -ENOENT;
 	}
 
 	// Step 3: Clear data block bitmap of target file
