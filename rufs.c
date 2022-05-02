@@ -393,9 +393,9 @@ static int rufs_opendir(const char *path, struct fuse_file_info *fi) {
 	// Step 1: Call get_node_by_path() to get inode from path
 
 	// Step 2: If not find, return -1
-
+	struct inode inode;
 	
-	int check = get_node_by_path(path,0,0);
+	int check = get_node_by_path(path,0, &inode);
 
 	if(check == 0){
 		return -1; // not found
