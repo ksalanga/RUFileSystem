@@ -521,23 +521,23 @@ static int rufs_releasedir(const char *path, struct fuse_file_info *fi) {
 static int rufs_create(const char *path, mode_t mode, struct fuse_file_info *fi) { 
 
 	// Step 1: Use dirname() and basename() to separate parent directory path and target file name
+	char *dirc, *basec, *bname, *dname;
 
-	char *lastSlash = strrchr(path, '/');
-    const char *base = lastSlash ? lastSlash + 1 : path;
-
-    char dir[lastSlash + 1 - path];
-	memcpy(&dir, path, lastSlash + 1 - path);
+	dirc = strdup(path);
+	basec = strdup(path);
+	dname = dirname(dirc);
+	bname = basename(basec);
 
 	// Step 2: Call get_node_by_path() to get inode of parent directory
 	struct inode target_dir_inode;
-	if (get_node_by_path(path, 0, &target_dir_inode)) {
+	if (get_node_by_path(dname, 0, &target_dir_inode)) {
 	// Step 3: Call get_avail_ino() to get an available inode number
 		int avail_ino = get_avail_ino();
 		int avail_block = get_avail_blkno();
 
 		if (avail_ino != -1 && avail_block != -1) {
 			// Step 4: Call dir_add() to add directory entry of target directory to parent directory
-			dir_add(target_dir_inode, avail_ino, base, sizeof(base));
+			dir_add(target_dir_inode, avail_ino, bname, strlen(bname + '\0'));
 			// Step 5: Update inode for target file
 			struct inode target_file_inode;
 			target_file_inode.ino = avail_ino;
