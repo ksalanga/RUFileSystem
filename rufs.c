@@ -568,7 +568,7 @@ static int rufs_read(const char *path, char *buffer, size_t size, off_t offset, 
 
 	// Step 1: You could call get_node_by_path() to get inode from path
 	struct inode inode;
-	if (!get_node_by_path(path, 0, &inode) || offset / (int) BLOCK_SIZE > 15) {
+	if (!get_node_by_path(path, 0, &inode) || offset / ((int) BLOCK_SIZE) > 15) {
 		return 0;
 	}
 
@@ -597,7 +597,7 @@ static int rufs_read(const char *path, char *buffer, size_t size, off_t offset, 
 		if (!inode.direct_ptr[i]) {
 			return 0;
 		} else {
-			bio_read(inode.direct_ptr[i] / (int) BLOCK_SIZE, data_block);
+			bio_read(inode.direct_ptr[i] / ((int) BLOCK_SIZE), data_block);
 			memcpy(buffer + bytes_copied, &data_block, BLOCK_SIZE);
 			bytes_copied += BLOCK_SIZE;
 		}
@@ -630,7 +630,7 @@ static int rufs_write(const char *path, const char *buffer, size_t size, off_t o
 
 	// Step 1: You could call get_node_by_path() to get inode from path
 	struct inode inode;
-	if (!get_node_by_path(path, 0, &inode) || offset / (int) BLOCK_SIZE > 15) {
+	if (!get_node_by_path(path, 0, &inode) || offset / ((int) BLOCK_SIZE) > 15) {
 		return 0;
 	}
 
@@ -647,12 +647,12 @@ static int rufs_write(const char *path, const char *buffer, size_t size, off_t o
 		int avail_block = get_avail_blkno();
 		inode.direct_ptr[first_block_index] = (superblock.d_start_blk + avail_block) * BLOCK_SIZE;
 		memcpy(&data_block[offset], buffer, bytes_copied);
-		bio_write(inode.direct_ptr[first_block_index] / (int) BLOCK_SIZE, &data_block);
+		bio_write(inode.direct_ptr[first_block_index] / ((int) BLOCK_SIZE), &data_block);
 
 	}else{ //partially filled block of direct pointer
 		bytes_copied = bytes_copied-sizeof(inode.direct_ptr[first_block_index]); 
 		memcpy(&data_block[offset], buffer, bytes_copied);
-		bio_write(inode.direct_ptr[first_block_index] / (int) BLOCK_SIZE, &data_block);	
+		bio_write(inode.direct_ptr[first_block_index] / ((int) BLOCK_SIZE), &data_block);	
 	}
 
 	if (first_block_index == last_block_index) {
@@ -666,7 +666,7 @@ static int rufs_write(const char *path, const char *buffer, size_t size, off_t o
 			inode.direct_ptr[i] = (superblock.d_start_blk + avail_block) * BLOCK_SIZE;
 			char data_block[BLOCK_SIZE];
 			memcpy(&data_block, buffer + bytes_copied, BLOCK_SIZE);
-			bio_write(inode.direct_ptr[i] / (int) BLOCK_SIZE, &data_block);
+			bio_write(inode.direct_ptr[i] / ((int) BLOCK_SIZE), &data_block);
 			bytes_copied += BLOCK_SIZE;
 		}
 	}
@@ -678,7 +678,7 @@ static int rufs_write(const char *path, const char *buffer, size_t size, off_t o
 		inode.direct_ptr[last_block_index] = (superblock.d_start_blk + avail_block) * BLOCK_SIZE;
 		char data_block[BLOCK_SIZE];
 		memcpy(&data_block, buffer + bytes_copied, BLOCK_SIZE);
-		bio_write(inode.direct_ptr[last_block_index] / (int) BLOCK_SIZE, &data_block);
+		bio_write(inode.direct_ptr[last_block_index] / ((int) BLOCK_SIZE), &data_block);
 	}
 
 
