@@ -586,12 +586,12 @@ static int rufs_read(const char *path, char *buffer, size_t size, off_t offset, 
 	bio_read(inode.direct_ptr[first_block_index] / b_size, &data_block);
 
 	if (first_block_index == last_block_index) {
-		memcpy(buffer, &data_block[offset], size);
+		memcpy(buffer, &data_block[offset % b_size], size);
 		return size;
 	}
 
-	int bytes_copied = BLOCK_SIZE - offset;
-	memcpy(buffer, &data_block[offset], bytes_copied);
+	int bytes_copied = (first_block_index + 1) * b_size - offset;
+	memcpy(buffer, &data_block[offset % b_size], bytes_copied);
 	
 	for (int i = first_block_index + 1; i < last_block_index; i++) {
 		if (!inode.direct_ptr[i]) {
