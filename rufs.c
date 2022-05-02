@@ -437,15 +437,16 @@ static int rufs_readdir(const char *path, void *buffer, fuse_fill_dir_t filler, 
 static int rufs_mkdir(const char *path, mode_t mode) {
 
 	// Step 1: Use dirname() and basename() to separate parent directory path and target directory name
-	char *lastSlash = strrchr((char *)path, '/');
-    const char *base = lastSlash ? lastSlash + 1 : path;
+	char *dirc, *basec, *bname, *dname;
 
-    char dir[lastSlash + 1 - path];
-	memcpy(&dir, path, lastSlash + 1 - path);
+	dirc = strdup(path);
+	basec = strdup(path);
+	dname = dirname(dirc);
+	bname = basename(basec);
 
 	// Step 2: Call get_node_by_path() to get inode of parent directory
 	struct inode dir_inode;
-	if (get_node_by_path(dir, 0, &dir_inode)) {
+	if (get_node_by_path(dname, 0, &dir_inode)) {
 		// Step 3: Call get_avail_ino() to get an available dir_inode number
 		int avail_ino = get_avail_ino();
 		int avail_block = get_avail_blkno();
@@ -476,11 +477,12 @@ static int rufs_mkdir(const char *path, mode_t mode) {
 static int rufs_rmdir(const char *path) {
 
 	// Step 1: Use dirname() and basename() to separate parent directory path and target directory name
-	char *lastSlash = strrchr(path, '/');
-    const char *base = lastSlash ? lastSlash + 1 : path;
+	char *dirc, *basec, *bname, *dname;
 
-    char dir[lastSlash + 1 - path];
-	memcpy(&dir, path, lastSlash + 1 - path);
+	dirc = strdup(path);
+	basec = strdup(path);
+	dname = dirname(dirc);
+	bname = basename(basec);
 
 	// Step 2: Call get_node_by_path() to get inode of parent directory
 	struct inode target_dir_inode;
@@ -500,9 +502,10 @@ static int rufs_rmdir(const char *path) {
 
 		// Step 5: Call get_node_by_path() to get inode of parent directory
 		struct inode dir_inode;
-		get_node_by_path((const char *)&dir, 0, &dir_inode);
+		get_node_by_path(dname, 0, &dir_inode);
 
 		// Step 6: Call dir_remove() to remove directory entry of target directory in its parent directory
+		dir_remove(dir_inode, bname, strlen(bname + '\0'));
 		return 0;
 	}
 
@@ -685,11 +688,12 @@ static int rufs_write(const char *path, const char *buffer, size_t size, off_t o
 static int rufs_unlink(const char *path) {
 
 	// Step 1: Use dirname() and basename() to separate parent directory path and target file name
-	char *lastSlash = strrchr(path, '/');
-    const char *base = lastSlash ? lastSlash + 1 : path;
+	char *dirc, *basec, *bname, *dname;
 
-    char dir[lastSlash + 1 - path];
-	memcpy(&dir, path, lastSlash + 1 - path);
+	dirc = strdup(path);
+	basec = strdup(path);
+	dname = dirname(dirc);
+	bname = basename(basec);
 
 	// Step 2: Call get_node_by_path() to get inode of target file
 	struct inode target_file;
@@ -720,7 +724,7 @@ static int rufs_unlink(const char *path) {
 
 	struct inode parent_dir;
 	// Step 5: Call get_node_by_path() to get inode of parent directory
-	get_node_by_path(dir, 0, &parent_dir);
+	get_node_by_path(dname, 0, &parent_dir);
 
 	// Step 6: Call dir_remove() to remove directory entry of target file in its parent directory
 	dir_remove(parent_dir, bname, strlen(bname + '\0'));
