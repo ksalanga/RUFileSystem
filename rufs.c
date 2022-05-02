@@ -467,12 +467,12 @@ static int rufs_mkdir(const char *path, mode_t mode) {
 			// Step 6: Call writei() to write inode to disk
 			writei(avail_ino, &target_dir_inode);
 
-			return 1;
+			return 0;
 		}
 	}
 	
 
-	return 0;
+	return -1;
 }
 
 static int rufs_rmdir(const char *path) {
