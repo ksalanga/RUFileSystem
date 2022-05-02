@@ -645,31 +645,23 @@ static int rufs_write(const char *path, const char *buffer, size_t size, off_t o
 		// Step 3: write the correct amount of data from offset to buffer
 
 		int avail_block = get_avail_blkno();
-		inode.direct_ptr[first_block_index] = (superblock.d_start_blk + avail_block) * BLOCK_SIZE;
-		memcpy(&data_block[offset], buffer, bytes_copied);
-		bio_write(inode.direct_ptr[first_block_index] / ((int) BLOCK_SIZE), &data_block);
-
-	}else{ //partially filled block of direct pointer
-		bytes_copied = bytes_copied-sizeof(inode.direct_ptr[first_block_index]); 
-		memcpy(&data_block[offset], buffer, bytes_copied);
-		bio_write(inode.direct_ptr[first_block_index] / ((int) BLOCK_SIZE), &data_block);	
+		inode.direct_ptr[first_block_index] = (superblock.d_start_blk + avail_block) * b_size;
+		writei(inode.ino, &inode);
 	}
 	memcpy(&data_block[offset % b_size], buffer, bytes_copied);
 	bio_write(inode.direct_ptr[first_block_index] / b_size, &data_block);
 
 	if (first_block_index == last_block_index) {
-		memcpy(&data_block[offset], buffer, size);
+		inode.size += size;
+		writei(inode.ino, &inode);
 		return size;
 	}
 
 	for (int i = first_block_index + 1; i < last_block_index; i++) {
 		if (!inode.direct_ptr[i]) {
 			int avail_block = get_avail_blkno();
-			inode.direct_ptr[i] = (superblock.d_start_blk + avail_block) * BLOCK_SIZE;
-			char data_block[BLOCK_SIZE];
-			memcpy(&data_block, buffer + bytes_copied, BLOCK_SIZE);
-			bio_write(inode.direct_ptr[i] / ((int) BLOCK_SIZE), &data_block);
-			bytes_copied += BLOCK_SIZE;
+			inode.direct_ptr[i] = (superblock.d_start_blk + avail_block) * b_size;
+			writei(inode.ino, &inode);
 		}
 	}
 	
@@ -677,16 +669,15 @@ static int rufs_write(const char *path, const char *buffer, size_t size, off_t o
 	bytes_copied += remaining_size;
 	if (!inode.direct_ptr[last_block_index]) {
 		int avail_block = get_avail_blkno();
-		inode.direct_ptr[last_block_index] = (superblock.d_start_blk + avail_block) * BLOCK_SIZE;
-		char data_block[BLOCK_SIZE];
-		memcpy(&data_block, buffer + bytes_copied, BLOCK_SIZE);
-		bio_write(inode.direct_ptr[last_block_index] / ((int) BLOCK_SIZE), &data_block);
+		inode.direct_ptr[last_block_index] = (superblock.d_start_blk + avail_block) * b_size;
+		writei(inode.ino, &inode);
 	}
 
 
 
 
-	// Note: this function should return the amount of bytes you copied to buffer
+	inode.size += size;
+	writei(inode.ino, &inode);
 	return size;
 }
 
