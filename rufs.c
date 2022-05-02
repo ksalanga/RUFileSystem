@@ -648,6 +648,10 @@ static int rufs_write(const char *path, const char *buffer, size_t size, off_t o
 		memcpy(&data_block[offset], buffer, bytes_copied);
 		bio_write(inode.direct_ptr[first_block_index] / (int) BLOCK_SIZE, &data_block);
 
+	}else{ //partially filled block of direct pointer
+		bytes_copied = bytes_copied-sizeof(inode.direct_ptr[first_block_index]); 
+		memcpy(&data_block[offset], buffer, bytes_copied);
+		bio_write(inode.direct_ptr[first_block_index] / (int) BLOCK_SIZE, &data_block);	
 	}
 
 	if (first_block_index == last_block_index) {
