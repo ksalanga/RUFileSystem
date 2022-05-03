@@ -163,6 +163,7 @@ int dir_find(uint16_t ino, const char *fname, size_t name_len, struct dirent *di
   	for (int i = 0; i < max_num_entries; i++) {
 		if (entry_ptr->valid && strcmp(entry_ptr->name, fname) == 0) {
 			memcpy(dirent, entry_ptr, sizeof(struct dirent));
+	
 			return 1;
 		}
 		entry_ptr++;
@@ -189,6 +190,7 @@ int dir_add(struct inode dir_inode, uint16_t f_ino, const char *fname, size_t na
 	bio_read(data_block_index, &dirent_block);
 	struct dirent *entry_ptr = (struct dirent *)&dirent_block;
 
+
 	int numEntries = BLOCK_SIZE / sizeof(struct dirent);
 
 	for(int i = 0; i < numEntries; i++){
@@ -196,6 +198,7 @@ int dir_add(struct inode dir_inode, uint16_t f_ino, const char *fname, size_t na
 			return 1;
 		}else if(!entry_ptr->valid){
 			entry_ptr->valid = 1;
+	
 			entry_ptr->len = name_len;
 			entry_ptr->ino = f_ino;
 			strcpy(entry_ptr->name, fname);
@@ -448,7 +451,6 @@ static int rufs_readdir(const char *path, void *buffer, fuse_fill_dir_t filler, 
 
 
 static int rufs_mkdir(const char *path, mode_t mode) {
-
 	// Step 1: Use dirname() and basename() to separate parent directory path and target directory name
 	char *dirc, *basec, *bname, *dname;
 
@@ -464,16 +466,20 @@ static int rufs_mkdir(const char *path, mode_t mode) {
 		int avail_ino = get_avail_ino();
 		int avail_block = get_avail_blkno();
 
+
+
 		if (avail_ino != -1 && avail_block != -1) {
 			// Step 4: Call dir_add() to add directory entry of target directory to parent directory
 			dir_add(dir_inode, avail_ino, bname, strlen(bname + '\0'));
 
 			// Step 5: Update inode for target directory
+
 			struct inode target_dir_inode;
 			target_dir_inode.ino = avail_ino;
 			target_dir_inode.valid = 1;
 			target_dir_inode.type = DIRECTORY;
 			target_dir_inode.size = 0;
+
 			target_dir_inode.direct_ptr[0] = (superblock.d_start_blk + avail_block) * BLOCK_SIZE;
 			
 			char empty_block[BLOCK_SIZE];
@@ -488,8 +494,8 @@ static int rufs_mkdir(const char *path, mode_t mode) {
 
 			return 0;
 		}
+
 	}
-	
 
 	return -ENOENT;
 }
@@ -594,7 +600,12 @@ static int rufs_read(const char *path, char *buffer, size_t size, off_t offset, 
 	// Step 1: You could call get_node_by_path() to get inode from path
 	int b_size = ((int) BLOCK_SIZE);
 	struct inode inode;
-	if (!get_node_by_path(path, 0, &inode) || offset / b_size > 15) {
+	if (!get_node_by_path(path, 0, &inode)) {
+		return 0;
+	}
+
+	if (offset / b_size > 15) {
+		fprintf(stderr, "File read request too large\n");
 		return 0;
 	}
 
@@ -655,10 +666,14 @@ static int rufs_write(const char *path, const char *buffer, size_t size, off_t o
 
 	// Step 1: You could call get_node_by_path() to get inode from path
 	struct inode inode;
-	if (!get_node_by_path(path, 0, &inode) || offset / b_size > 15) {
+	if (!get_node_by_path(path, 0, &inode)) {
 		return 0;
 	}
 
+	if (offset / b_size > 15) {
+		fprintf(stderr, "File write request too large\n");
+		return 0;
+	}
 	// Step 2: Based on size and offset, read its data blocks from disk
 	int first_block_index = offset / b_size;
 	int last_block_index = (offset + size - 1) / b_size;
@@ -668,8 +683,8 @@ static int rufs_write(const char *path, const char *buffer, size_t size, off_t o
 	int bytes_copied = (first_block_index + 1) * b_size - offset;
 	if (!inode.direct_ptr[first_block_index]) {
 		// Step 3: write the correct amount of data from offset to buffer
-
 		int avail_block = get_avail_blkno();
+
 		inode.direct_ptr[first_block_index] = (superblock.d_start_blk + avail_block) * b_size;
 		writei(inode.ino, &inode);
 	}
