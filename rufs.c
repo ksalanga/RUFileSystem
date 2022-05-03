@@ -327,6 +327,10 @@ int rufs_mkfs() {
 	root_directory.size = 0;
 	root_directory.direct_ptr[0] = superblock.d_start_blk * BLOCK_SIZE;
 
+	char empty_block[BLOCK_SIZE];
+	memset(&empty_block, 0, BLOCK_SIZE);
+	bio_write(root_directory.direct_ptr[0] / ((int) BLOCK_SIZE), &empty_block);
+
 	char root_directory_inode_block[BLOCK_SIZE];
 	memcpy(root_directory_inode_block, &root_directory, sizeof(root_directory));
 	bio_write(3, root_directory_inode_block);
@@ -471,6 +475,13 @@ static int rufs_mkdir(const char *path, mode_t mode) {
 			target_dir_inode.type = DIRECTORY;
 			target_dir_inode.size = 0;
 			target_dir_inode.direct_ptr[0] = (superblock.d_start_blk + avail_block) * BLOCK_SIZE;
+			
+			char empty_block[BLOCK_SIZE];
+			memset(&empty_block, 0, BLOCK_SIZE);
+			bio_write(target_dir_inode.direct_ptr[0] / ((int) BLOCK_SIZE), &empty_block);
+
+	
+	
 
 			// Step 6: Call writei() to write inode to disk
 			writei(avail_ino, &target_dir_inode);
