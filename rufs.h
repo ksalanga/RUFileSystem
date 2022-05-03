@@ -3,7 +3,12 @@
  *	RU File System
  *
  *	File:	rufs.h
+ *	
+ *	Names:
+ *	Kenneth Salanga kcs132
+ *	Ganesh Vankayala gvv6
  *
+ * 	Ilab machine: kill.cs.rutgers.edu
  */
 
 #include <linux/limits.h>
