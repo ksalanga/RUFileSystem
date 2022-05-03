@@ -205,7 +205,7 @@ int dir_add(struct inode dir_inode, uint16_t f_ino, const char *fname, size_t na
 		entry_ptr++;
 	}
 
-
+	fprintf(stderr, "Directory Full. Only %d entries allowed\n", numEntries);
 
 	return 0;
 }
