@@ -565,6 +565,9 @@ static int rufs_create(const char *path, mode_t mode, struct fuse_file_info *fi)
 			target_file_inode.type = REG_FILE;
 			target_file_inode.size = 0;
 			target_file_inode.direct_ptr[0] = (superblock.d_start_blk + avail_block) * BLOCK_SIZE;
+			for (int i = 1; i < 16; i++) {
+				target_file_inode.direct_ptr[i] = 0;
+			}
 
 			// Step 6: Call writei() to write inode to disk
 			writei(avail_ino, &target_file_inode);
