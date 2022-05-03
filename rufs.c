@@ -92,7 +92,7 @@ int get_avail_blkno() {
             break;
         }
     }
-    if(index == superblock.max_inum + 1){
+    if(index == superblock.max_dnum + 1){
         return -1;
     }
     set_bitmap(data_bitmap, index);
