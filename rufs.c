@@ -240,7 +240,6 @@ int dir_remove(struct inode dir_inode, const char *fname, size_t name_len) {
  * namei operation
  */
 int get_node_by_path(const char *path, uint16_t ino, struct inode *inode) {
-	
 	// Step 1: Resolve the path name, walk through path, and finally, find its inode.
 	// Note: You could either implement it in a iterative way or recursive way
 	if (strcmp(path, "/") == 0) {
@@ -251,15 +250,20 @@ int get_node_by_path(const char *path, uint16_t ino, struct inode *inode) {
 	char *file = strtok((char *)path, "/");
 
 	struct dirent dirent;
+	int temp = ino;
 	dirent.valid = 0;
 	while (file != NULL) {
-		if (dir_find(ino, file, strlen(file), &dirent)) {
-			ino = dirent.ino;
+
+		if (dir_find(temp, file, strlen(file), &dirent)) {
+			temp = dirent.ino;
+	
 		} else {
 			return 0;
 		}
 		file = strtok(NULL, "/");
 	}
+
+	ino = temp;
 
 	if (dirent.valid) {
 		readi(dirent.ino, inode);
