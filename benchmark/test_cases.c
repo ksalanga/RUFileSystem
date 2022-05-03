@@ -7,11 +7,12 @@
 #include <string.h>
 #include <sys/types.h>
 #include <dirent.h>
+#include <sys/time.h>
 
 /* You need to change this macro to your RUFS mount point*/
 #define TESTDIR "/tmp/kcs132/mountdir"
 
-#define N_FILES 100
+#define N_FILES 18
 #define BLOCKSIZE 4096
 #define FSPATHLEN 256
 #define ITERS 16
@@ -26,6 +27,11 @@ int main(int argc, char **argv) {
 	int i, fd = 0, ret = 0;
 	struct stat st;
 
+	struct timeval t1, t2;
+    double elapsedTime;
+
+    // start timer
+    gettimeofday(&t1, NULL);
 	/* TEST 1: file create test */
 	if ((fd = creat(TESTDIR "/file", FILEPERM)) < 0) {
 		perror("creat");
@@ -151,8 +157,16 @@ int main(int argc, char **argv) {
 			exit(1);
 		}
 	}
+	// stop timer
+    gettimeofday(&t2, NULL);
 	printf("TEST 8: Sub-directory create success \n");
 
+	printf("Non Large File Benchmark completed \n");
+
+    // compute and print the elapsed time in millisec
+    elapsedTime = (t2.tv_sec - t1.tv_sec) * 1000.0;      // sec to ms
+    elapsedTime += (t2.tv_usec - t1.tv_usec) / 1000.0;   // us to ms
+    printf("Time elapsed: %f ms.\n", elapsedTime);
 
 	/* TEST 9: Large file write-read test */
 	if ((fd = creat(TESTDIR "/largefile", FILEPERM)) < 0) {
@@ -166,14 +180,14 @@ int main(int argc, char **argv) {
 		memset(buf, 0x61 + i % 26, BLOCKSIZE);
 
 		if (write(fd, buf, BLOCKSIZE) != BLOCKSIZE) {
-			printf("TEST 9: Large file write failure \n");
+			printf("TEST 9: Large file write failure 1\n");
 			exit(1);
 		}
 	}
 	
 	fstat(fd, &st);
 	if (st.st_size != ITERS_LARGE*BLOCKSIZE) {
-		printf("TEST 9: Large file write failure \n");
+		printf("TEST 9: Large file write failure 2\n");
 		exit(1);
 	}
 	printf("TEST 9: Large file write success \n");

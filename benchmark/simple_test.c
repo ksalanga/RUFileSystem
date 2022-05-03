@@ -7,11 +7,12 @@
 #include <string.h>
 #include <sys/types.h>
 #include <dirent.h>
+#include <sys/time.h>
 
 /* You need to change this macro to your RUFS mount point*/
 #define TESTDIR "/tmp/kcs132/mountdir"
 
-#define N_FILES 100
+#define N_FILES 18
 #define BLOCKSIZE 4096
 #define FSPATHLEN 256
 #define ITERS 16
@@ -25,6 +26,11 @@ int main(int argc, char **argv) {
 	int i, fd = 0, ret = 0;
 	struct stat st;
 
+	struct timeval t1, t2;
+    double elapsedTime;
+
+    // start timer
+    gettimeofday(&t1, NULL);
 	if ((fd = creat(TESTDIR "/file", FILEPERM)) < 0) {
 		perror("creat");
 		printf("TEST 1: File create failure \n");
@@ -105,7 +111,6 @@ int main(int argc, char **argv) {
 		exit(1);
 	}
 	printf("TEST 6: Directory create success \n");
-
 	
 	/* Sub-directory creation test */
 	for (i = 0; i < N_FILES; ++i) {
@@ -115,7 +120,7 @@ int main(int argc, char **argv) {
 		sprintf(subdir_path, "%s%d", TESTDIR "/files/dir", i);
 		if ((ret = mkdir(subdir_path, DIRPERM)) < 0) {
 			perror("mkdir");
-			printf("TEST 7: Sub-directory create failure \n");
+			printf("TEST 7: Sub-directory create failure 1\n");
 			exit(1);
 		}
 	}
@@ -128,12 +133,19 @@ int main(int argc, char **argv) {
 		sprintf(subdir_path, "%s%d", TESTDIR "/files/dir", i);
 		if ((dir = opendir(subdir_path)) == NULL) {
 			perror("opendir");
-			printf("TEST 7: Sub-directory create failure \n");
+			printf("TEST 7: Sub-directory create failure 1\n");
 			exit(1);
 		}
 	}
+	// stop timer
+    gettimeofday(&t2, NULL);
 	printf("TEST 7: Sub-directory create success \n");
 
 	printf("Benchmark completed \n");
+
+    // compute and print the elapsed time in millisec
+    elapsedTime = (t2.tv_sec - t1.tv_sec) * 1000.0;      // sec to ms
+    elapsedTime += (t2.tv_usec - t1.tv_usec) / 1000.0;   // us to ms
+    printf("Time elapsed: %f ms.\n", elapsedTime);
 	return 0;
 }
