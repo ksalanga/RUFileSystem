@@ -722,10 +722,14 @@ static int rufs_unlink(const char *path) {
 	}
 
 	// Step 3: Clear data block bitmap of target file
-	int num_blocks = target_file.size / (int) BLOCK_SIZE + 1;
 
-	for (int i = 0; i < num_blocks; i++) {
-		unset_bitmap(data_bitmap, target_file.direct_ptr[i] / (int) BLOCK_SIZE);
+	for (int i = 0; i < 16; i++) {
+		if (target_file.direct_ptr[i] != 0) {
+			int unlink_index = target_file.direct_ptr[i] / ((int) BLOCK_SIZE);
+	
+			unset_bitmap(data_bitmap, unlink_index - superblock.d_start_blk);
+			target_file.direct_ptr[i] = 0;
+		}
 	}
 
 	char data_bitmap_block[BLOCK_SIZE];
