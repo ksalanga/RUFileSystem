@@ -2,7 +2,12 @@
  *  Copyright (C) 2022 CS416/518 Rutgers CS
  *	RU File System
  *	File:	rufs.c
+ *	
+ *	Names:
+ *	Kenneth Salanga kcs132
+ *	Ganesh Vankayala gvv6
  *
+ * 	Ilab machine: kill.cs.rutgers.edu
  */
 
 #define FUSE_USE_VERSION 26
